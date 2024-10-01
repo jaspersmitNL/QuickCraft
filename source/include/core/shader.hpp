@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <webgpu/webgpu_cpp.h>
-#include "GLFW/glfw3.h"
 
 class WebGPU;
 

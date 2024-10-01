@@ -1,16 +1,21 @@
 #include <iostream>
 
 #include "core/shader.hpp"
+#include "core/buffer.hpp"
 #include "core/webgpu.hpp"
 
-wgpu::RenderPipeline renderPipeline;
 
-wgpu::Buffer uniformBuffer;
+
+wgpu::RenderPipeline renderPipeline;
 wgpu::BindGroup bindGroup;
+
 
 struct Uniforms {
     float time;
 };
+
+Buffer<Uniforms>* uniformBuffer;
+
 
 Uniforms uniforms;
 
@@ -42,7 +47,8 @@ void Render(WebGPU &webgpu) {
     passEncoder.SetPipeline(renderPipeline);
 
     uniforms.time = (float)glfwGetTime();
-    webgpu.m_Queue.WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(uniforms));
+    uniformBuffer->Write(uniforms);
+
 
 
 
@@ -84,18 +90,17 @@ int main() {
 
 
 
-    wgpu::BufferDescriptor uniformBufferDescriptor = {
-        .label = "Uniform Buffer",
-        .usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst,
-        .size = sizeof(Uniforms),
-    };
 
-    uniformBuffer = webgpu.m_Device.CreateBuffer(&uniformBufferDescriptor);
-    webgpu.m_Queue.WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(uniforms));
+
+
+    uniformBuffer = new Buffer<Uniforms>(webgpu, "Uniforms", {uniforms}, wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst);
+
+
+
     wgpu::BindGroupEntry bindGroupEntries[] = {
         {
             .binding = 0,
-            .buffer = uniformBuffer,
+            .buffer = uniformBuffer->m_Buffer,
             .offset = 0,
             .size = sizeof(Uniforms),
         },
