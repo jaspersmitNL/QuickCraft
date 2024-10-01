@@ -1,4 +1,6 @@
 #include <iostream>
+
+#include "core/shader.hpp"
 #include "core/webgpu.hpp"
 
 wgpu::RenderPipeline renderPipeline;
@@ -59,29 +61,9 @@ int main() {
     WebGPU webgpu(800, 600, "WebGPU Test");
 
 
-    const char shaderCode[] = R"(
-   struct Uniforms {
-    uTime: f32
-   };
-@group(0) @binding(0) var<uniform> uniforms: Uniforms;
-    @vertex fn vertexMain(@builtin(vertex_index) i : u32) ->
-      @builtin(position) vec4f {
-        const pos = array(vec2f(0, 1), vec2f(-1, -1), vec2f(1, -1));
-        //scale the position by the time
+    Shader shader("Simple Shader", "../res/shader.wgsl");
 
-        return vec4f(pos[i] * sin(uniforms.uTime), 0, 1);
-    }
-    @fragment fn fragmentMain() -> @location(0) vec4f {
-        return vec4f(1, 0, 0, 1);
-    }
-)";
-    wgpu::ShaderModuleWGSLDescriptor shaderModuleWGSLDescriptor{};
-    shaderModuleWGSLDescriptor.code = shaderCode;
-    wgpu::ShaderModuleDescriptor shaderModuleDescriptor{
-        .nextInChain = &shaderModuleWGSLDescriptor,
-    };
-
-    wgpu::ShaderModule shaderModule = webgpu.m_Device.CreateShaderModule(&shaderModuleDescriptor);
+    wgpu::ShaderModule shaderModule = shader.Transfer(webgpu);
 
     wgpu::ColorTargetState colorTargetState{
         .format = webgpu.m_TextureFormat

@@ -1,37 +1,21 @@
-
-
-
-struct VertexOutput {
-    @builtin(position) pos: vec4<f32>,
-    @location(0) color: vec4<f32>
-}
-
 struct Uniforms {
-    uProjection: mat4x4<f32>,
-    uOffset: vec3<f32>
+    uTime: f32
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
 
-@vertex fn vertexMain(@location(0) in_vertex_position: vec2<f32>, @location(1) in_vertex_color: vec3<f32>) -> VertexOutput {
-    var output: VertexOutput;
-
-
-
-    //Apply the projection matrix and offset
-    output.pos = uniforms.uProjection * vec4<f32>(
-        uniforms.uOffset.x + in_vertex_position.x,
-        uniforms.uOffset.y + in_vertex_position.y,
-        0.0, 1.0);
-
-
-
-    output.color = vec4<f32>(in_vertex_color, 1.0);
-    return output;
+@vertex
+fn vertexMain(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+    const pos = array(
+        vec2f(0, 1),
+        vec2f(-1, -1),
+        vec2f(1, -1)
+    );
+    // Scale the position by the time
+    return vec4f(pos[i] * sin(uniforms.uTime), 0, 1);
 }
 
-@fragment fn fragmentMain(
-    output: VertexOutput
-) -> @location(0) vec4<f32> {
-    return output.color;
+@fragment
+fn fragmentMain() -> @location(0) vec4f {
+    return vec4f(1, 0, 0, 1);
 }
