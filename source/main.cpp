@@ -3,10 +3,11 @@
 #include "core/shader.hpp"
 #include "core/buffer.hpp"
 #include "core/webgpu.hpp"
+#include "core/pipeline.hpp"
 
 
 
-wgpu::RenderPipeline renderPipeline;
+Pipeline* renderPipeline;
 wgpu::BindGroup bindGroup;
 
 
@@ -44,7 +45,7 @@ void Render(WebGPU &webgpu) {
     wgpu::CommandEncoder commandEncoder = webgpu.m_Device.CreateCommandEncoder(&commandEncoderDescriptor);
     wgpu::RenderPassEncoder passEncoder = commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
-    passEncoder.SetPipeline(renderPipeline);
+    passEncoder.SetPipeline(renderPipeline->m_Pipeline);
 
     uniforms.time = (float)glfwGetTime();
     uniformBuffer->Write(uniforms);
@@ -68,26 +69,9 @@ int main() {
 
 
     Shader shader("Simple Shader", "../res/shader.wgsl");
+    renderPipeline = new Pipeline(webgpu, shader, "Render Pipeline");
 
-    wgpu::ShaderModule shaderModule = shader.Transfer(webgpu);
-
-    wgpu::ColorTargetState colorTargetState{
-        .format = webgpu.m_TextureFormat
-    };
-    wgpu::FragmentState fragmentState{
-        .module = shaderModule,
-        .targetCount = 1,
-        .targets = &colorTargetState
-    };
-
-    wgpu::RenderPipelineDescriptor renderPipelineDescriptor{
-        .label = "Simple Pipeline",
-        .vertex = {.module = shaderModule},
-        .fragment = &fragmentState,
-    };
-
-    renderPipeline = webgpu.m_Device.CreateRenderPipeline(&renderPipelineDescriptor);
-
+    renderPipeline->CreatePipeline();
 
 
 
@@ -108,7 +92,7 @@ int main() {
 
     wgpu::BindGroupDescriptor bindGroupDescriptor = {
         .label = "Uniform Bind Group",
-        .layout = renderPipeline.GetBindGroupLayout(0),
+        .layout = renderPipeline->m_Pipeline.GetBindGroupLayout(0),
         .entryCount = 1,
         .entries = bindGroupEntries,
     };
