@@ -1,10 +1,11 @@
 struct Uniforms {
     uProjection: mat4x4<f32>,
-    uModel: mat4x4<f32>,
+    uView: mat4x4<f32>,
+    uModel: mat4x4<f32>
 };
 
 struct VertexInput {
-    @location(0) pos: vec2<f32>,
+    @location(0) pos: vec3<f32>,
     @location(1) color: vec3<f32>
 }
 
@@ -18,8 +19,7 @@ struct VertexOutput {
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    // Scale the position by the time
-    output.pos = uniforms.uProjection * uniforms.uModel * vec4f(input.pos, 0, 1);
+    output.pos = uniforms.uProjection * uniforms.uView * uniforms.uModel * vec4f(input.pos, 1);
     output.color = input.color;
     return output;
 }

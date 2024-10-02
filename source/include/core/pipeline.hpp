@@ -24,6 +24,7 @@ public:
     const char *m_Label;
 
     wgpu::RenderPipeline m_Pipeline;
+    wgpu::Texture m_DepthTexture;
     std::vector<VBC> m_VertexConfigs;
     Pipeline(WebGPU &webgpu, Shader &shader, const char *label);
 

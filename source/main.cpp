@@ -9,21 +9,25 @@
 
 struct Uniforms {
     glm::mat4 projection;
+    glm::mat4 view;
     glm::mat4 model;
 };
+
 struct Vertex {
-    float position[2];
-    float color[3];
+    glm::vec3 position;
+    glm::vec3 color;
 };
+
 Pipeline *renderPipeline;
 Buffer<Vertex> *vertexBuffer;
 wgpu::BindGroup bindGroup;
 
 
-
-
 Buffer<Uniforms> *uniformBuffer;
 Uniforms uniforms;
+
+
+uint32_t vertexCount;
 
 void Render(WebGPU &webgpu) {
     wgpu::SurfaceTexture surfaceTexture;
@@ -38,10 +42,19 @@ void Render(WebGPU &webgpu) {
     };
 
 
+    wgpu::RenderPassDepthStencilAttachment renderPassDepthStencilAttachment{
+        .view = renderPipeline->m_DepthTexture.CreateView(),
+        .depthLoadOp = wgpu::LoadOp::Clear,
+        .depthStoreOp = wgpu::StoreOp::Store,
+        .depthClearValue = 1.0f,
+
+    };
+
     wgpu::RenderPassDescriptor renderPassDescriptor{
         .label = "Render Pass",
         .colorAttachmentCount = 1,
         .colorAttachments = &renderPassColorAttachment,
+        .depthStencilAttachment = &renderPassDepthStencilAttachment,
     };
 
 
@@ -52,23 +65,28 @@ void Render(WebGPU &webgpu) {
     wgpu::CommandEncoder commandEncoder = webgpu.m_Device.CreateCommandEncoder(&commandEncoderDescriptor);
     wgpu::RenderPassEncoder passEncoder = commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
-    uniforms.projection = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -1.0f, 1.0f);
-    uniforms.model = glm::mat4(1.0f);
-    float scale = sin(glfwGetTime());
-    uniforms.model = glm::scale(uniforms.model, glm::vec3(scale, scale, 1.0f));
-    uniformBuffer->Write(uniforms);
+    auto width = webgpu.m_Width;
+    auto height = webgpu.m_Height;
 
+    uniforms.projection = glm::perspective(glm::radians(45.0f), (float) width / (float) height, 0.1f, 100.0f);
+    uniforms.view = glm::mat4(1.0f);
+    uniforms.view = glm::translate(uniforms.view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+    uniforms.model = glm::mat4(1.0f);
+    uniforms.model = glm::rotate(uniforms.model, (float) glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+
+    uniformBuffer->Write(uniforms);
 
 
     passEncoder.SetPipeline(renderPipeline->m_Pipeline);
 
 
-    for (auto& vbc: renderPipeline->m_VertexConfigs) {
+    for (auto &vbc: renderPipeline->m_VertexConfigs) {
         passEncoder.SetVertexBuffer(0, vbc.buffer, vbc.offset, vbc.buffer.GetSize());
     }
 
     passEncoder.SetBindGroup(0, bindGroup);
-    passEncoder.Draw(3);
+    passEncoder.Draw(vertexCount);
     passEncoder.End();
 
 
@@ -86,33 +104,42 @@ int main() {
     Shader shader("Simple Shader", "../res/shader.wgsl");
     renderPipeline = new Pipeline(webgpu, shader, "Render Pipeline");
 
+    glm::vec3 RED = glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 GREEN = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    std::vector<Vertex> cube_verts = {
+
+        // FRONT
+        {{-0.5f, -0.5f, 0.5f}, RED}, // b-left
+        {{0.5f, -0.5f, 0.5f}, RED}, // b-right
+        {{0.5f, 0.5f, 0.5f}, RED}, // t-right
+
+        {{0.5f, 0.5f, 0.5f}, RED}, // t-right
+        {{-0.5f, 0.5f, 0.5f}, RED}, // t-left
+        {{-0.5f, -0.5f, 0.5f}, RED}, // b-left
+        // END FRONT
+
+        // BACK
+        {{-0.5f, -0.5f, -0.5f}, GREEN}, // b-left
+        {{0.5f, -0.5f, -0.5f}, GREEN}, // b-right
+        {{0.5f, 0.5f, -0.5f}, GREEN}, // t-right
+
+        {{0.5f, 0.5f, -0.5f}, GREEN}, // t-right
+        {{-0.5f, 0.5f, -0.5f}, GREEN}, // t-left
+        {{-0.5f, -0.5f, -0.5f}, GREEN}, // b-left
+        // END BACK
 
 
-
-
-    std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{0.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
     };
 
+    vertexCount = cube_verts.size();
 
-    // wgpu::BufferDescriptor vertexBufferDescriptor{
-    //     .label = "Vertex Buffer",
-    //     .usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst,
-    //     .size = sizeof(Vertex) * vertices.size()
-    // };
-    // renderPipeline->m_VertexBuffer = webgpu.m_Device.CreateBuffer(&vertexBufferDescriptor);
-    //
-    // webgpu.m_Queue.WriteBuffer(renderPipeline->m_VertexBuffer, 0, vertices.data(), sizeof(Vertex) * vertices.size());
-    //
-
-
-    Buffer<Vertex> vertexBuffer(webgpu, "Vertex Buffer", vertices, wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst);
+    Buffer<Vertex> vertexBuffer(webgpu, "Vertex Buffer", cube_verts,
+                                wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst);
 
 
     renderPipeline->AddVertexBuffer(vertexBuffer);
-    renderPipeline->AddVertexAttribute(wgpu::VertexFormat::Float32x2, 0);
+    renderPipeline->AddVertexAttribute(wgpu::VertexFormat::Float32x3, 0);
     renderPipeline->AddVertexAttribute(wgpu::VertexFormat::Float32x3, 1);
     renderPipeline->CreatePipeline();
 
