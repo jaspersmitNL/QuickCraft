@@ -15,6 +15,7 @@ WebGPU::WebGPU(uint32_t width, uint32_t height, const std::string &title) {
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
     this->m_Window = glfwCreateWindow(this->m_Width, this->m_Height, title.c_str(), nullptr, nullptr);
     this->m_Surface = wgpu::glfw::CreateSurfaceForWindow(m_Instance, m_Window);
@@ -121,5 +122,13 @@ WebGPU::~WebGPU() {
         m_Adapter = nullptr;
         m_Device = nullptr;
         m_Queue = nullptr;
+    }
+}
+
+void WebGPU::SetVisible(bool show) {
+    if (show) {
+        glfwShowWindow(this->m_Window);
+    } else {
+        glfwHideWindow(this->m_Window);
     }
 }

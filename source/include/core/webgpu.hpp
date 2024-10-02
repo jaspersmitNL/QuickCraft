@@ -23,4 +23,6 @@ public:
 
     WebGPU(uint32_t width, uint32_t height, const std::string& title);
     ~WebGPU();
+
+    void SetVisible(bool show);
 };
