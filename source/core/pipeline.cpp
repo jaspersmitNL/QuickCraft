@@ -105,7 +105,7 @@ wgpu::RenderPipeline &Pipeline::CreatePipeline() {
         .label = this->m_Label,
         .vertex = vertexState,
         .primitive = {
-            .topology = wgpu::PrimitiveTopology::TriangleList,
+            .topology = wgpu::PrimitiveTopology::LineStrip,
             .cullMode = wgpu::CullMode::None,
         },
         .depthStencil = &depthStencilState,

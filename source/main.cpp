@@ -73,7 +73,8 @@ void Render(WebGPU &webgpu) {
     uniforms.view = glm::translate(uniforms.view, glm::vec3(0.0f, 0.0f, -3.0f));
 
     uniforms.model = glm::mat4(1.0f);
-    uniforms.model = glm::rotate(uniforms.model, (float) glfwGetTime(), glm::vec3(0.0f, 1.0f, 0.0f));
+    uniforms.model = glm::scale(uniforms.model, glm::vec3(0.5f, 0.5f, 0.5f));
+    uniforms.model = glm::rotate(uniforms.model, (float) glfwGetTime(), glm::vec3(1.0f, 1.0f, 0.0f));
 
     uniformBuffer->Write(uniforms);
 
@@ -98,7 +99,7 @@ int main() {
     printf("Hello, World!\n");
 
 
-    WebGPU webgpu(800, 600, "WebGPU Test");
+    WebGPU webgpu(1280, 720, "QuickCraft");
 
 
     Shader shader("Simple Shader", "../res/shader.wgsl");
@@ -106,6 +107,8 @@ int main() {
 
     glm::vec3 RED = glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 GREEN = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 BLUE = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 YELLOW = glm::vec3(1.0f, 1.0f, 0.0f);
 
     std::vector<Vertex> cube_verts = {
 
@@ -128,6 +131,27 @@ int main() {
         {{-0.5f, 0.5f, -0.5f}, GREEN}, // t-left
         {{-0.5f, -0.5f, -0.5f}, GREEN}, // b-left
         // END BACK
+
+        // LEFT
+        {{-0.5f, -0.5f, -0.5f}, BLUE}, // b-left
+        {{-0.5f, -0.5f, 0.5f}, BLUE}, // b-right
+        {{-0.5f, 0.5f, 0.5f}, BLUE}, // t-right
+
+        {{-0.5f, 0.5f, 0.5f}, BLUE}, // t-right
+        {{-0.5f, 0.5f, -0.5f}, BLUE}, // t-left
+        {{-0.5f, -0.5f, -0.5f}, BLUE}, // b-left
+        // END LEFT
+
+        // RIGHT
+        {{0.5f, -0.5f, -0.5f}, YELLOW}, // b-left
+        {{0.5f, -0.5f, 0.5f}, YELLOW}, // b-right
+        {{0.5f, 0.5f, 0.5f}, YELLOW}, // t-right
+
+        {{0.5f, 0.5f, 0.5f}, YELLOW}, // t-right
+        {{0.5f, 0.5f, -0.5f}, YELLOW}, // t-left
+        {{0.5f, -0.5f, -0.5f}, YELLOW}, // b-left
+
+        // END RIGHT
 
 
     };
