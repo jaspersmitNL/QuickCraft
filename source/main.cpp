@@ -10,7 +10,7 @@
 struct Uniforms {
     glm::mat4 projection;
     glm::mat4 view;
-    glm::mat4 model;
+    glm::mat4 models[4];
 };
 
 struct Vertex {
@@ -72,9 +72,28 @@ void Render(WebGPU &webgpu) {
     uniforms.view = glm::mat4(1.0f);
     uniforms.view = glm::translate(uniforms.view, glm::vec3(0.0f, 0.0f, -3.0f));
 
-    uniforms.model = glm::mat4(1.0f);
-    uniforms.model = glm::scale(uniforms.model, glm::vec3(0.5f, 0.5f, 0.5f));
-    uniforms.model = glm::rotate(uniforms.model, (float) glfwGetTime(), glm::vec3(1.0f, 1.0f, 0.0f));
+    float time = (float) glfwGetTime();
+    uniforms.view = glm::rotate(uniforms.view, time, glm::vec3(1.0f, 1.0f, 1.0f));
+
+
+
+
+    uniforms.models[0] = glm::mat4(1.0f);
+    uniforms.models[0] = glm::scale(uniforms.models[0], glm::vec3(0.5f, 0.5f, 0.5f));
+    uniforms.models[0] = glm::translate(uniforms.models[0], glm::vec3(-1.0f, 0.0f, 0.0f));
+
+    uniforms.models[1] = glm::mat4(1.0f);
+    uniforms.models[1] = glm::scale(uniforms.models[1], glm::vec3(0.5f, 0.5f, 0.5f));
+    uniforms.models[1] = glm::translate(uniforms.models[1], glm::vec3(1.0f, 0.0f, 0.0f));
+
+    uniforms.models[2] = glm::mat4(1.0f);
+    uniforms.models[2] = glm::scale(uniforms.models[2], glm::vec3(0.5f, 0.5f, 0.5f));
+    uniforms.models[2] = glm::translate(uniforms.models[2], glm::vec3(0.0f, 1.0f, 0.0f));
+
+    uniforms.models[3] = glm::mat4(1.0f);
+    uniforms.models[3] = glm::scale(uniforms.models[3], glm::vec3(0.5f, 0.5f, 0.5f));
+    uniforms.models[3] = glm::translate(uniforms.models[3], glm::vec3(0.0f, -1.0f, 0.0f));
+
 
     uniformBuffer->Write(uniforms);
 
@@ -87,7 +106,7 @@ void Render(WebGPU &webgpu) {
     }
 
     passEncoder.SetBindGroup(0, bindGroup);
-    passEncoder.Draw(vertexCount);
+    passEncoder.Draw(vertexCount, 4, 0, 0);
     passEncoder.End();
 
 
