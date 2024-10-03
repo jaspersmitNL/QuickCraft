@@ -1,7 +1,7 @@
 struct Uniforms {
     uProjection: mat4x4<f32>,
     uView: mat4x4<f32>,
-    uModels: array<mat4x4<f32>, 4>
+    uModel: mat4x4<f32>
 };
 
 struct VertexInput {
@@ -20,8 +20,7 @@ struct VertexOutput {
 @vertex
 fn vertexMain(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    var model = uniforms.uModels[input.instanceIndex];
-    output.pos = uniforms.uProjection * uniforms.uView * model * vec4f(input.pos, 1);
+    output.pos = uniforms.uProjection * uniforms.uView * uniforms.uModel * vec4f(input.pos, 1);
     output.color = input.color;
     return output;
 }

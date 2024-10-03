@@ -7,10 +7,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "core/camera.hpp"
+
 struct Uniforms {
     glm::mat4 projection;
     glm::mat4 view;
-    glm::mat4 models[4];
+    glm::mat4 model;
 };
 
 struct Vertex {
@@ -21,15 +23,14 @@ struct Vertex {
 Pipeline *renderPipeline;
 Buffer<Vertex> *vertexBuffer;
 wgpu::BindGroup bindGroup;
-
-
 Buffer<Uniforms> *uniformBuffer;
 Uniforms uniforms;
 
+Camera camera(45.0f, 0.1f, 200.0f);
 
 uint32_t vertexCount;
 
-void Render(WebGPU &webgpu) {
+void Render(WebGPU &webgpu, double deltaTime) {
     wgpu::SurfaceTexture surfaceTexture;
     webgpu.m_Surface.GetCurrentTexture(&surfaceTexture);
 
@@ -63,53 +64,29 @@ void Render(WebGPU &webgpu) {
     };
 
     wgpu::CommandEncoder commandEncoder = webgpu.m_Device.CreateCommandEncoder(&commandEncoderDescriptor);
-    wgpu::RenderPassEncoder passEncoder = commandEncoder.BeginRenderPass(&renderPassDescriptor);
-
-    auto width = webgpu.m_Width;
-    auto height = webgpu.m_Height;
-
-    uniforms.projection = glm::perspective(glm::radians(45.0f), (float) width / (float) height, 0.1f, 100.0f);
-    uniforms.view = glm::mat4(1.0f);
-    uniforms.view = glm::translate(uniforms.view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-    float time = (float) glfwGetTime();
-    uniforms.view = glm::rotate(uniforms.view, time, glm::vec3(1.0f, 1.0f, 1.0f));
+    wgpu::RenderPassEncoder renderPass = commandEncoder.BeginRenderPass(&renderPassDescriptor);
 
 
-
-
-    uniforms.models[0] = glm::mat4(1.0f);
-    uniforms.models[0] = glm::scale(uniforms.models[0], glm::vec3(0.5f, 0.5f, 0.5f));
-    uniforms.models[0] = glm::translate(uniforms.models[0], glm::vec3(-1.0f, 0.0f, 0.0f));
-
-    uniforms.models[1] = glm::mat4(1.0f);
-    uniforms.models[1] = glm::scale(uniforms.models[1], glm::vec3(0.5f, 0.5f, 0.5f));
-    uniforms.models[1] = glm::translate(uniforms.models[1], glm::vec3(1.0f, 0.0f, 0.0f));
-
-    uniforms.models[2] = glm::mat4(1.0f);
-    uniforms.models[2] = glm::scale(uniforms.models[2], glm::vec3(0.5f, 0.5f, 0.5f));
-    uniforms.models[2] = glm::translate(uniforms.models[2], glm::vec3(0.0f, 1.0f, 0.0f));
-
-    uniforms.models[3] = glm::mat4(1.0f);
-    uniforms.models[3] = glm::scale(uniforms.models[3], glm::vec3(0.5f, 0.5f, 0.5f));
-    uniforms.models[3] = glm::translate(uniforms.models[3], glm::vec3(0.0f, -1.0f, 0.0f));
-
-
-    uniformBuffer->Write(uniforms);
-
-
-    passEncoder.SetPipeline(renderPipeline->m_Pipeline);
-
+    renderPass.SetPipeline(renderPipeline->m_Pipeline);
+    renderPass.SetBindGroup(0, bindGroup);
 
     for (auto &vbc: renderPipeline->m_VertexConfigs) {
-        passEncoder.SetVertexBuffer(0, vbc.buffer, vbc.offset, vbc.buffer.GetSize());
+        renderPass.SetVertexBuffer(0, vbc.buffer, vbc.offset, vbc.buffer.GetSize());
     }
 
-    passEncoder.SetBindGroup(0, bindGroup);
-    passEncoder.Draw(vertexCount, 4, 0, 0);
-    passEncoder.End();
+
+    uniforms.view = camera.GetView();
+    uniforms.projection = camera.GetProjection();
 
 
+    uniforms.model = glm::mat4(1.0f);
+    uniforms.model = glm::scale(uniforms.model, glm::vec3(0.5f, 0.5f, 0.5f));
+    uniforms.model = glm::translate(uniforms.model, glm::vec3(-5.0f, 0.0f, 0.0f));
+    uniformBuffer->Write(uniforms);
+    renderPass.Draw(vertexCount, 1, 0, 0);
+
+
+    renderPass.End();
     wgpu::CommandBuffer commandBuffer = commandEncoder.Finish();
     webgpu.m_Queue.Submit(1, &commandBuffer);
 }
@@ -119,6 +96,8 @@ int main() {
 
 
     WebGPU webgpu(1280, 720, "QuickCraft");
+
+    glfwSwapInterval(1); // Enable vsync
 
 
     Shader shader("Simple Shader", "../res/shader.wgsl");
@@ -212,14 +191,28 @@ int main() {
 
     webgpu.SetVisible(true);
 
-    while (!glfwWindowShouldClose(webgpu.m_Window)) {
+
+    double lastTime = glfwGetTime();
+
+    camera.OnResize(webgpu.m_Width, webgpu.m_Height);
+    camera.RecalculateProjection();
+    camera.RecalculateView();
+
+    while (!glfwWindowShouldClose(WebGPU::m_Window)) {
         glfwPollEvents();
 
+        double currentTime = glfwGetTime();
+        double deltaTime = currentTime - lastTime;
 
-        Render(webgpu);
+        camera.OnResize(webgpu.m_Width, webgpu.m_Height);
+        camera.OnUpdate(deltaTime);
+
+        Render(webgpu, deltaTime);
 
         webgpu.m_Surface.Present();
         webgpu.m_Instance.ProcessEvents();
+
+        lastTime = currentTime;
     }
 
 

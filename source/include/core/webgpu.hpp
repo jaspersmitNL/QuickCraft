@@ -10,7 +10,7 @@ class WebGPU {
 public:
     uint32_t m_Width, m_Height;
 
-    GLFWwindow* m_Window;
+    inline static GLFWwindow* m_Window = nullptr;
     wgpu::Surface m_Surface;
     wgpu::SurfaceCapabilities m_SurfaceCapabilities{};
     wgpu::TextureFormat m_TextureFormat;
