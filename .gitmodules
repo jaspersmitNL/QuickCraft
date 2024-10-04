@@ -1,0 +1,4 @@
+[submodule "vendor/dawn"]
+	path = vendor/dawn
+	url = https://dawn.googlesource.com/dawn.git
+	branch = chromium/6719
