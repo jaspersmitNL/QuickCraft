@@ -4,9 +4,6 @@
 
 
 void Pipelines::Initialize(Core::Context &ctx) {
-
-
-
     wgpu::ShaderModule chunkShaderModule = Core::LoadShaderFromFile(ctx.m_Device, "../res/test.wgsl", "ChunkShader");
 
     struct Vertex {
@@ -20,19 +17,16 @@ void Pipelines::Initialize(Core::Context &ctx) {
     };
 
 
-    static wgpu::VertexBufferLayout vertexBufferLayout{
-        .arrayStride = sizeof(Vertex),
-        .attributeCount = 2,
-        .attributes = vertexAttributes.data(),
-    };
-
-
     m_ChunkPipeline = ctx.m_Device.CreateRenderPipeline(ToPtr(wgpu::RenderPipelineDescriptor{
         .vertex = wgpu::VertexState{
             .module = chunkShaderModule,
             .entryPoint = "vs_main",
             .bufferCount = 1,
-            .buffers = &vertexBufferLayout,
+            .buffers = ToPtr(wgpu::VertexBufferLayout{
+                .arrayStride = sizeof(Vertex),
+                .attributeCount = 2,
+                .attributes = vertexAttributes.data(),
+            }),
         },
         .depthStencil = ToPtr(wgpu::DepthStencilState{
             .format = wgpu::TextureFormat::Depth24Plus,

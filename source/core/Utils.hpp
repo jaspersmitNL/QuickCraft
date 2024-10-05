@@ -7,6 +7,8 @@ const T *ToPtr(const T &&value) {
     return &value;
 }
 
+
+
 namespace Core {
 #define WAIT_FOR_FUTURE(instance, future) instance.WaitAny(future, UINT64_MAX)
 
