@@ -217,8 +217,7 @@ void SetupRenderPipeline(Core::Context &ctx) {
         .label = "Render Pipeline",
         .vertex = vertexState,
         .primitive = {
-            .topology = wgpu::PrimitiveTopology::LineList,
-            .cullMode = wgpu::CullMode::None
+            .topology = wgpu::PrimitiveTopology::TriangleList,
         },
         .depthStencil = &depthStencilState,
         .fragment = &fragmentState,
@@ -229,23 +228,24 @@ void SetupRenderPipeline(Core::Context &ctx) {
 }
 
 void Setup(Core::Context &ctx) {
-
-
     SetupRenderPipeline(ctx);
 
 
     auto addFace = [&](EnumFace face, glm::vec3 color, glm::vec3 pos = {0.0f, 0.0f, 0.0f}) {
         auto v = GetVerts(face, color);
         glm::mat4 model = glm::translate(glm::mat4(1.0f), pos);
-        for (auto &vertex : v) {
+        for (auto &vertex: v) {
             vertex.pos = glm::vec3(model * glm::vec4(vertex.pos, 1.0f));
         }
         vertices.insert(vertices.end(), v.begin(), v.end());
     };
 
-    std::vector<glm::vec3> blocks = {
-
+    struct Block {
+        glm::vec3 pos;
+        glm::vec3 color;
     };
+
+    std::vector<Block> blocks;
 
     // for(int x = -10; x < 10; x++) {
     //     for(int z = -10; z < 10; z++) {
@@ -253,25 +253,30 @@ void Setup(Core::Context &ctx) {
     //     }
     // }
 
+    //set random seed
+    srand(0);
+
     // gen a chunk of 16x16x16 blocks
-    for(int x = 0; x < 16; x++) {
-        for(int y = 0; y < 16; y++) {
-            for(int z = 0; z < 16; z++) {
-                blocks.emplace_back(x, y, z);
+    auto size = 32;
+    for (int x = 0; x < size; x++) {
+        for (int y = 0; y < size; y++) {
+            for (int z = 0; z < size; z++) {
+                Block block{};
+                block.pos = {x, y, z};
+                block.color = {rand() % 255 / 255.0f, rand() % 255 / 255.0f, rand() % 255 / 255.0f};
+                blocks.emplace_back(block);;
             }
         }
     }
 
-    for(auto& block : blocks)
-    {
-        addFace(FRONT, RED, block);
-        addFace(BACK, BLUE, block);
-        addFace(LEFT, GREEN, block);
-        addFace(RIGHT, YELLOW, block);
-        addFace(TOP, CYAN, block);
-        addFace(BOTTOM, MAGENTA, block);
+    for (auto &block: blocks) {
+        addFace(FRONT, block.color, block.pos);
+        addFace(BACK, block.color, block.pos);
+        addFace(LEFT, block.color, block.pos);
+        addFace(RIGHT, block.color, block.pos);
+        addFace(TOP, block.color, block.pos);
+        addFace(BOTTOM, block.color, block.pos);
     }
-
 
 
     vertexBuffer = ctx.m_Device.CreateBuffer(Core::ToPtr(wgpu::BufferDescriptor{
@@ -291,26 +296,25 @@ void Setup(Core::Context &ctx) {
         .size = sizeof(Uniforms),
     };
 
-    uniformBuffer = ctx.m_Device.CreateBuffer(&uniformBufferDescriptor);
+    uniformBuffer = ctx.m_Device.CreateBuffer(&uniformBufferDescriptor); {
+        wgpu::BindGroupEntry bindGroupEntries[1] = {
+            {
+                .binding = 0,
+                .buffer = uniformBuffer,
+                .offset = 0,
+                .size = sizeof(Uniforms),
+            },
+        };
 
+        wgpu::BindGroupDescriptor bindGroupDescriptor{
+            .label = "Uniform Bind Group",
+            .layout = renderPipeline.GetBindGroupLayout(0),
+            .entryCount = 1,
+            .entries = bindGroupEntries,
+        };
 
-    wgpu::BindGroupEntry bindGroupEntries[1] = {
-        {
-            .binding = 0,
-            .buffer = uniformBuffer,
-            .offset = 0,
-            .size = sizeof(Uniforms),
-        },
-    };
-
-    wgpu::BindGroupDescriptor bindGroupDescriptor{
-        .label = "Uniform Bind Group",
-        .layout = renderPipeline.GetBindGroupLayout(0),
-        .entryCount = 1,
-        .entries = bindGroupEntries,
-    };
-
-    bindGroup = ctx.m_Device.CreateBindGroup(&bindGroupDescriptor);
+        bindGroup = ctx.m_Device.CreateBindGroup(&bindGroupDescriptor);
+    }
 }
 
 void Render(Core::Context &ctx) {
@@ -354,7 +358,6 @@ void Render(Core::Context &ctx) {
     uniforms.uView = camera.GetView();
 
 
-
     uniforms.uModel = glm::mat4(1.0f);
     auto time = static_cast<float>(glfwGetTime());
     // uniforms.uModel = glm::rotate(uniforms.uModel, time, glm::vec3(1.0f, 1.0f, 0.0f));
@@ -375,6 +378,8 @@ void Start() {
     Core::Context ctx(1080, 720, "WebGPU");
 
     Setup(ctx);
+
+
 
     glfwShowWindow(Core::Context::m_Window);
 
