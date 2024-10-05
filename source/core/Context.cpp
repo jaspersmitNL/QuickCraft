@@ -80,6 +80,7 @@ namespace Core {
         m_Surface.GetCapabilities(m_Adapter, &m_SurfaceCapabilities);
         m_SurfaceTextureFormat = m_SurfaceCapabilities.formats[0];
 
+
         m_Surface.Configure(ToPtr(wgpu::SurfaceConfiguration{
 
             .device = m_Device,

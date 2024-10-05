@@ -9,7 +9,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.hpp"
 #include "game/Camera.hpp"
-
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_wgpu.h"
 
 struct Vertex {
     glm::vec3 pos;
@@ -104,7 +106,6 @@ void Render(Core::Context &ctx) {
         .clearValue = wgpu::Color{0.0f, 0.0f, 0.0f, 1.0f},
     };
 
-
     wgpu::RenderPassDepthStencilAttachment renderPassDepthStencilAttachment{
         .view = depthTexture.CreateView(),
         .depthLoadOp = wgpu::LoadOp::Clear,
@@ -127,7 +128,10 @@ void Render(Core::Context &ctx) {
     ctx.m_Queue.WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(Uniforms));
 
 
+
     wgpu::CommandEncoder encoder = ctx.m_Device.CreateCommandEncoder();
+
+
     wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDescriptor);
     pass.SetPipeline(pipelines.m_ChunkPipeline);
     pass.SetBindGroup(0, uniformBindGroup);
@@ -135,11 +139,60 @@ void Render(Core::Context &ctx) {
 
     pass.SetVertexBuffer(0, vertexBuffer);
     pass.Draw(vertices.size(), 1, 0, 0);
-
-
     pass.End();
+
+
+
+
+    // Start the Dear ImGui frame
+    ImGui_ImplWGPU_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    bool showDemo = true;
+    ImGui::ShowDemoWindow(&showDemo);
+    ImGui::Render();
+
+
+    wgpu::RenderPassColorAttachment imGuiColorAttachment{
+        .view = surfaceTexture.texture.CreateView(),
+        .loadOp = wgpu::LoadOp::Load,
+        .storeOp = wgpu::StoreOp::Store,
+        .clearValue = wgpu::Color{0.0f, 0.0f, 0.0f, 1.0f},
+    };
+    wgpu::RenderPassDescriptor imGuiRenderPassDescriptor{
+        .label = "ImGui Render Pass",
+        .colorAttachmentCount = 1,
+        .colorAttachments = &imGuiColorAttachment,
+    };
+
+    wgpu::RenderPassEncoder imGuiPass = encoder.BeginRenderPass(&imGuiRenderPassDescriptor);
+    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), imGuiPass.Get());
+    imGuiPass.End();
+
     wgpu::CommandBuffer commands = encoder.Finish();
     ctx.m_Queue.Submit(1, &commands);
+
+
+
+}
+
+void SetupImGui(Core::Context &ctx) {
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    ImGui_ImplGlfw_InitForOther(ctx.m_Window, true);
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplWGPU_InitInfo init_info;
+    init_info.Device = ctx.m_Device.Get();
+    init_info.NumFramesInFlight = 3;
+    init_info.RenderTargetFormat = (WGPUTextureFormat) ctx.m_SurfaceTextureFormat; ;
+    init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
+    ImGui_ImplWGPU_Init(&init_info);
 }
 
 void Start() {
@@ -201,8 +254,13 @@ void Start() {
     camera.RecalculateProjection();
     camera.RecalculateView();
 
+
+ SetupImGui(ctx);
+
+
     while (!glfwWindowShouldClose(Core::Context::m_Window)) {
         glfwPollEvents();
+
 
         Render(ctx);
 
