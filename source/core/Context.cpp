@@ -1,10 +1,8 @@
-#include "Context.hpp"
-
 #include <iostream>
-
-#include "Utils.hpp"
 #include <stdexcept>
 #include <GLFW/glfw3.h>
+#include "Context.hpp"
+#include "Utils.hpp"
 
 
 namespace Core {
@@ -110,12 +108,15 @@ namespace Core {
         glfwSetWindowUserPointer(m_Window, this);
 
 
-
         SetupAdapter();
         SetupDevice();
         SetupRenderer();
 
+        // center the window
+        const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        glfwSetWindowPos(m_Window, (mode->width - m_Width) / 2, (mode->height - m_Height) / 2);
+
 
         glfwShowWindow(m_Window);
     }
-} // Core
+}

@@ -4,6 +4,9 @@
 
 
 void Pipelines::Initialize(Core::Context &ctx) {
+
+
+
     wgpu::ShaderModule chunkShaderModule = Core::LoadShaderFromFile(ctx.m_Device, "../res/test.wgsl", "ChunkShader");
 
     struct Vertex {
@@ -12,16 +15,17 @@ void Pipelines::Initialize(Core::Context &ctx) {
     };
 
     static std::vector<wgpu::VertexAttribute> vertexAttributes{
-        {wgpu::VertexFormat::Float32x3, offsetof(Vertex, pos), 0},  // pos
-        {wgpu::VertexFormat::Float16x2, offsetof(Vertex, uv), 1},  // uv
+        {wgpu::VertexFormat::Float32x3, offsetof(Vertex, pos), 0}, // pos
+        {wgpu::VertexFormat::Float32x2, offsetof(Vertex, uv), 1}, // uv
     };
 
 
-    static  wgpu::VertexBufferLayout vertexBufferLayout{
+    static wgpu::VertexBufferLayout vertexBufferLayout{
         .arrayStride = sizeof(Vertex),
         .attributeCount = 2,
         .attributes = vertexAttributes.data(),
     };
+
 
     m_ChunkPipeline = ctx.m_Device.CreateRenderPipeline(ToPtr(wgpu::RenderPipelineDescriptor{
         .vertex = wgpu::VertexState{
@@ -30,6 +34,11 @@ void Pipelines::Initialize(Core::Context &ctx) {
             .bufferCount = 1,
             .buffers = &vertexBufferLayout,
         },
+        .depthStencil = ToPtr(wgpu::DepthStencilState{
+            .format = wgpu::TextureFormat::Depth24Plus,
+            .depthWriteEnabled = {true},
+            .depthCompare = wgpu::CompareFunction::Less,
+        }),
         .fragment = ToPtr(wgpu::FragmentState{
             .module = chunkShaderModule,
             .entryPoint = "fs_main",
@@ -37,6 +46,7 @@ void Pipelines::Initialize(Core::Context &ctx) {
             .targets = ToPtr(wgpu::ColorTargetState{
                 .format = ctx.m_SurfaceTextureFormat
             })
-        })
+        }),
+
     }));
 }

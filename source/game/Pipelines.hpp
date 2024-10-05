@@ -3,7 +3,6 @@
 #include "core/Context.hpp"
 
 
-
 class Pipelines {
 public:
 
