@@ -12,4 +12,5 @@ namespace Core {
 
     wgpu::ShaderModule LoadShader(wgpu::Device& device, std::string source, const char * label);
 
+    wgpu::ShaderModule LoadShaderFromFile(wgpu::Device& device, const char * path, const char * label);
 }
