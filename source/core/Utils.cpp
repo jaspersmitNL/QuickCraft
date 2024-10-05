@@ -4,6 +4,9 @@
 #include <fstream>
 
 namespace Core {
+
+
+
     wgpu::ShaderModule LoadShader(wgpu::Device &device, std::string source, const char * label) {
         wgpu::ShaderModuleWGSLDescriptor shaderModuleWgslDescriptor;
         shaderModuleWgslDescriptor.code = source.c_str();
@@ -26,6 +29,23 @@ namespace Core {
         buffer << file.rdbuf();
 
         return LoadShader(device, buffer.str(), label);
+
+    }
+
+
+
+    wgpu::Buffer CreateBufferFromData(wgpu::Device &device, wgpu::BufferUsage usage, const void *data, uint64_t size) {
+        wgpu::BufferDescriptor descriptor;
+        descriptor.size = size;
+        descriptor.usage = usage;
+        descriptor.mappedAtCreation = true;
+        wgpu::Buffer buffer = device.CreateBuffer(&descriptor);
+
+        void* bufferData = buffer.GetMappedRange();
+        memcpy(bufferData, data, size);
+        buffer.Unmap();
+
+        return buffer;
 
     }
 }
