@@ -20,6 +20,8 @@ namespace Core {
 
         Context(int width, int height, const char* title);
 
+        void OnResize(uint32_t width, uint32_t height);
+
     private:
         void SetupAdapter();
         void SetupDevice();

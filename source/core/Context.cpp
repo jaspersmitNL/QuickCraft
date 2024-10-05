@@ -98,7 +98,7 @@ namespace Core {
         }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
         m_Width = width;
@@ -119,5 +119,23 @@ namespace Core {
 
 
         glfwShowWindow(m_Window);
+    }
+
+    void Context::OnResize(uint32_t width, uint32_t height) {
+        this->m_Width = width;
+        this->m_Height = height;
+
+        // Recreate the surface
+        m_Surface.Configure(ToPtr(wgpu::SurfaceConfiguration{
+            .device = m_Device,
+            .format = m_SurfaceTextureFormat,
+            .width = m_Width,
+            .height = m_Height,
+            .presentMode = wgpu::PresentMode::Immediate
+        }));
+
+        // Recreate the swap chain
+        // Recreate the render pass
+
     }
 }

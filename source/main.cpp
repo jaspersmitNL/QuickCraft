@@ -59,9 +59,6 @@ void LoadTextures(Core::Context &ctx) {
 
 
 
-
-
-
     wgpu::TextureDescriptor textureDescriptor{
         .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst |
                  wgpu::TextureUsage::RenderAttachment,
@@ -157,7 +154,6 @@ void Render(Core::Context &ctx) {
         .view = surfaceTexture.texture.CreateView(),
         .loadOp = wgpu::LoadOp::Load,
         .storeOp = wgpu::StoreOp::Store,
-        .clearValue = wgpu::Color{0.0f, 0.0f, 0.0f, 1.0f},
     };
     wgpu::RenderPassDescriptor imGuiRenderPassDescriptor{
         .label = "ImGui Render Pass",
@@ -260,7 +256,26 @@ void Start() {
 
     while (!glfwWindowShouldClose(Core::Context::m_Window)) {
         glfwPollEvents();
+        int width, height;
+        glfwGetFramebufferSize((GLFWwindow*)Core::Context::m_Window, &width, &height);
 
+        if (width != ctx.m_Width || height != ctx.m_Height) {
+            ctx.OnResize(width, height);
+
+            depthTexture.Destroy();
+            depthTexture = ctx.m_Device.CreateTexture(ToPtr(wgpu::TextureDescriptor{
+                .label = "Depth Texture",
+                .usage = wgpu::TextureUsage::RenderAttachment,
+                .dimension = wgpu::TextureDimension::e2D,
+                .size = {ctx.m_Width, ctx.m_Height, 1},
+                .format = wgpu::TextureFormat::Depth24Plus,
+                .mipLevelCount = 1,
+                .sampleCount = 1
+            }));
+            printf("Resized to width: %d, height: %d\n", width, height);
+
+            camera.OnResize(width, height);
+        }
 
         Render(ctx);
 
