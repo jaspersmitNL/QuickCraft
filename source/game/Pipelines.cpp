@@ -9,11 +9,14 @@ void Pipelines::Initialize(Core::Context &ctx) {
     struct Vertex {
         glm::vec3 pos;
         glm::vec2 uv;
+        uint32_t blockID;
+
     };
 
     static std::vector<wgpu::VertexAttribute> vertexAttributes{
         {wgpu::VertexFormat::Float32x3, offsetof(Vertex, pos), 0}, // pos
         {wgpu::VertexFormat::Float32x2, offsetof(Vertex, uv), 1}, // uv
+        {wgpu::VertexFormat::Uint32, offsetof(Vertex, blockID), 2}, // blockID
     };
 
 
@@ -24,7 +27,7 @@ void Pipelines::Initialize(Core::Context &ctx) {
             .bufferCount = 1,
             .buffers = ToPtr(wgpu::VertexBufferLayout{
                 .arrayStride = sizeof(Vertex),
-                .attributeCount = 2,
+                .attributeCount = vertexAttributes.size(),
                 .attributes = vertexAttributes.data(),
             }),
         },

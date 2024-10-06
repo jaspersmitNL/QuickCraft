@@ -16,27 +16,69 @@
 struct Vertex {
     glm::vec3 pos;
     glm::vec2 uv;
+    uint32_t blockID;
 };
 
 
+std::vector<Vertex> vertices2 = {
 
-std::vector<Vertex> vertices = {
 
-    {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f}}, // bottom left
-    {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f}}, // bottom right
-    {{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f}}, // top right
-    {{-0.5f, 0.5f, 0.0f}, {0.0f, 1.0f}}, // top left
+    //BACK
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+    {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}}, // b-right
+    {{0.5f, 0.5f, -0.5f}, {1.0f, 0.0f}}, // t-right
+    {{0.5f, 0.5f, -0.5f}, {1.0f, 0.0f}}, // t-right
+    {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f}}, // t-left
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
 
-    {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f}}, // bottom left
-    {{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f}}, // top ri ght
-    {{-0.5f, 0.5f, 0.0f}, {0.0f, 1.0f}}, // top left
+    //FRONT
+    {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}}, // b-left
+    {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // b-right
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}}, // t-left
+    {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}}, // b-left
+
+    //LEFT
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+    {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // b-right
+    {{-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f}}, // t-left
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+
+    //RIGHT
+    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+    {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // b-right
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f}}, // t-left
+    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+
+    //TOP
+    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+    {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}}, // b-right
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}}, // t-left
+    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+
+    //BOTTOM
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+    {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}}, // b-right
+    {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
+    {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}}, // t-left
+    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
+
 
 };
-
+std::vector<Vertex> vertices;
 
 struct Uniforms {
     glm::mat4 uProjection;
     glm::mat4 uView;
+    glm::mat4 uModel;
 } uniforms;
 
 Camera camera(45.0f, 0.1f, 200.0f);
@@ -50,47 +92,94 @@ wgpu::Sampler sampler;
 wgpu::BindGroup uniformBindGroup;
 
 
-void LoadTextures(Core::Context &ctx) {
+unsigned char *LoadImage(const char *path) {
     int width, height, channels;
-    stbi_set_flip_vertically_on_load(true); // flip the image vertically b
-    unsigned char *pixels = stbi_load("../res/atlas.png", &width, &height, &channels, 0);
+    unsigned char *pixels = stbi_load(path, &width, &height, &channels, 0);
+    if (!pixels) {
+        printf("Failed to load image: %s\n", path);
+        exit(1);
+    }
+    if (channels == 3) {
+        unsigned char *pixels4 = new unsigned char[width * height * 4];
+        for (int i = 0; i < width * height; i++) {
+            pixels4[i * 4] = pixels[i * 3];
+            pixels4[i * 4 + 1] = pixels[i * 3 + 1];
+            pixels4[i * 4 + 2] = pixels[i * 3 + 2];
+            pixels4[i * 4 + 3] = 255;
+        }
+        printf("Converted to 4 channels\n");
+        delete[] pixels;
+        pixels = std::move(pixels4);
+    }
 
-    printf("Loaded texture width: %d, height: %d, channels: %d\n", width, height, channels);
+    printf("Loaded texture %s width: %d, height: %d, channels: %d\n", path, width, height, channels);
 
+    return pixels;
+}
 
-
+void LoadTextures(Core::Context &ctx) {
     wgpu::TextureDescriptor textureDescriptor{
         .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst |
                  wgpu::TextureUsage::RenderAttachment,
-        .size = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
+        .size = {128, 128, 2},
         .format = wgpu::TextureFormat::RGBA8Unorm,
     };
 
     texture = ctx.m_Device.CreateTexture(&textureDescriptor);
-    wgpu::ImageCopyTexture destination;
-    destination.texture = texture;
-    destination.mipLevel = 0;
-    destination.origin = {0, 0, 0};
-    destination.aspect = wgpu::TextureAspect::All;
-
-    wgpu::TextureDataLayout source;
-    source.offset = 0;
-    source.bytesPerRow = width * 4;
-    source.rowsPerImage = height;
-
-    wgpu::Extent3D copySize = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
-    ctx.m_Queue.WriteTexture(&destination, pixels, 4 * width * height, &source, &copySize);
 
 
-    wgpu::SamplerDescriptor samplerDescriptor;
-    samplerDescriptor.minFilter = wgpu::FilterMode::Linear;
-    samplerDescriptor.magFilter = wgpu::FilterMode::Linear;
-    sampler = ctx.m_Device.CreateSampler(&samplerDescriptor);
+    //load one.png
+    {
+        wgpu::ImageCopyTexture destination;
+        destination.texture = texture;
+        destination.mipLevel = 0;
+        destination.origin = {0, 0, 0};
+        destination.aspect = wgpu::TextureAspect::All;
+
+        wgpu::TextureDataLayout source;
+        source.offset = 0;
+        source.bytesPerRow = 128 * 4;
+        source.rowsPerImage = 128;
+
+        wgpu::Extent3D copySize = {128, 128, 1};
+        unsigned char *pixels = LoadImage("../res/one.png");
+        ctx.m_Queue.WriteTexture(&destination, pixels, 4 * 128 * 128, &source, &copySize);
+
+
+        wgpu::SamplerDescriptor samplerDescriptor;
+        samplerDescriptor.minFilter = wgpu::FilterMode::Linear;
+        samplerDescriptor.magFilter = wgpu::FilterMode::Linear;
+        sampler = ctx.m_Device.CreateSampler(&samplerDescriptor);
+    }
+
+    //load two.png
+    {
+        wgpu::ImageCopyTexture destination;
+        destination.texture = texture;
+        destination.mipLevel = 0;
+        destination.origin = {0, 0, 1};
+        destination.aspect = wgpu::TextureAspect::All;
+
+        wgpu::TextureDataLayout source;
+        source.offset = 0;
+        source.bytesPerRow = 128 * 4;
+        source.rowsPerImage = 128;
+
+        wgpu::Extent3D copySize = {128, 128, 1};
+        unsigned char *pixels = LoadImage("../res/two.png");
+        ctx.m_Queue.WriteTexture(&destination, pixels, 4 * 128 * 128, &source, &copySize);
+
+
+        wgpu::SamplerDescriptor samplerDescriptor;
+        samplerDescriptor.minFilter = wgpu::FilterMode::Linear;
+        samplerDescriptor.magFilter = wgpu::FilterMode::Linear;
+        sampler = ctx.m_Device.CreateSampler(&samplerDescriptor);
+    }
+
 }
 
 
 void Render(Core::Context &ctx) {
-
     camera.OnUpdate(1.0f / 120.0f);
 
     wgpu::SurfaceTexture surfaceTexture;
@@ -122,8 +211,11 @@ void Render(Core::Context &ctx) {
     uniforms.uProjection = camera.GetProjection();
     uniforms.uView = camera.GetView();
 
-    ctx.m_Queue.WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(Uniforms));
+    float time = (float) glfwGetTime();
+    uniforms.uModel = glm::mat4(1.0f);
 
+    // uniforms.uModel = glm::rotate(glm::mat4(1.0f), time, glm::vec3(1.0f, 1.0f, 0.0f));
+    ctx.m_Queue.WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(Uniforms));
 
 
     wgpu::CommandEncoder encoder = ctx.m_Device.CreateCommandEncoder();
@@ -139,14 +231,16 @@ void Render(Core::Context &ctx) {
     pass.End();
 
 
-
-
     // Start the Dear ImGui frame
     ImGui_ImplWGPU_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    bool showDemo = true;
-    ImGui::ShowDemoWindow(&showDemo);
+
+
+    bool demo = true;
+    ImGui::ShowDemoWindow(&demo);
+
+
     ImGui::Render();
 
 
@@ -167,18 +261,16 @@ void Render(Core::Context &ctx) {
 
     wgpu::CommandBuffer commands = encoder.Finish();
     ctx.m_Queue.Submit(1, &commands);
-
-
-
 }
 
 void SetupImGui(Core::Context &ctx) {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    ImGuiIO &io = ImGui::GetIO();
+    (void) io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 
     ImGui_ImplGlfw_InitForOther(ctx.m_Window, true);
     ImGui::StyleColorsDark();
@@ -186,7 +278,7 @@ void SetupImGui(Core::Context &ctx) {
     ImGui_ImplWGPU_InitInfo init_info;
     init_info.Device = ctx.m_Device.Get();
     init_info.NumFramesInFlight = 3;
-    init_info.RenderTargetFormat = (WGPUTextureFormat) ctx.m_SurfaceTextureFormat; ;
+    init_info.RenderTargetFormat = (WGPUTextureFormat) ctx.m_SurfaceTextureFormat;;
     init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
     ImGui_ImplWGPU_Init(&init_info);
 }
@@ -197,6 +289,24 @@ void Start() {
 
     LoadTextures(ctx);
 
+
+    for (int x = -8; x < 8; x++) {
+        for (int y = -8; y < 8; y++)
+            for (int z = -8; z < 8; z++) {
+
+                uint32_t blockID = (x + y + z) % 2 == 0;
+
+
+                auto verts = vertices2;
+                for (auto &v: verts) {
+                    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z));
+                    glm::vec3 pos(model * glm::vec4(v.pos, 1.0f));
+
+                    vertices.push_back({pos, v.uv, blockID});
+
+                }
+            }
+    }
 
 
     vertexBuffer = Core::CreateBufferFromData(ctx.m_Device, wgpu::BufferUsage::Vertex, vertices.data(),
@@ -251,13 +361,13 @@ void Start() {
     camera.RecalculateView();
 
 
- SetupImGui(ctx);
+    SetupImGui(ctx);
 
 
     while (!glfwWindowShouldClose(Core::Context::m_Window)) {
         glfwPollEvents();
         int width, height;
-        glfwGetFramebufferSize((GLFWwindow*)Core::Context::m_Window, &width, &height);
+        glfwGetFramebufferSize((GLFWwindow *) Core::Context::m_Window, &width, &height);
 
         if (width != ctx.m_Width || height != ctx.m_Height) {
             ctx.OnResize(width, height);
@@ -272,7 +382,6 @@ void Start() {
                 .mipLevelCount = 1,
                 .sampleCount = 1
             }));
-            printf("Resized to width: %d, height: %d\n", width, height);
 
             camera.OnResize(width, height);
         }
