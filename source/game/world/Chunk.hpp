@@ -6,7 +6,7 @@
 #include "game/Uniforms.hpp"
 #include "game/Pipelines.hpp"
 
-#define CHUNK_SIZE 16
+#define CHUNK_SIZE 32
 
 
 class Camera;
@@ -16,6 +16,9 @@ public:
     bool m_IsReady = false;
 
     Chunk(glm::vec3 chunkPosition);
+
+
+    unsigned int GetBlock(int x, int y, int z);
 
     void GenerateChunk();
 

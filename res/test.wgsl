@@ -4,6 +4,8 @@ struct VertexInput {
     @location(2) blockID: u32
 }
 
+
+
 struct VertexOutput {
     @builtin(position) pos: vec4<f32>,
     @location(0) uv: vec2<f32>,
@@ -30,9 +32,6 @@ struct Uniforms {
 }
 
 @fragment fn fs_main(in: VertexOutput) -> @location(0) vec4f {
-
     var color = textureSample(uMyTexture, uSampler, in.uv, in.blockID);
     return color;
-    //color using uv
-//    return vec4<f32>(1.0, 0.0, 0.0, 1.0);
 }

@@ -17,6 +17,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.hpp"
 #include "FastNoiseLite.hpp"
+#include "Test.hpp"
 #include "game/world/Chunk.hpp"
 
 
@@ -28,11 +29,7 @@ wgpu::Texture texture;
 wgpu::Sampler sampler;
 
 
-std::vector<Chunk> chunks = {
-    Chunk(glm::vec3(-1, 0, -2)),
-    Chunk(glm::vec3(1, 0, -2)),
-
-};
+std::vector<Chunk> chunks = {};
 
 unsigned char *LoadImage(const char *path) {
     int width, height, channels;
@@ -63,7 +60,7 @@ void LoadTextures(Core::Context &ctx) {
     wgpu::TextureDescriptor textureDescriptor{
         .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst |
                  wgpu::TextureUsage::RenderAttachment,
-        .size = {128, 128, 2},
+        .size = {128, 128, 4},
         .format = wgpu::TextureFormat::RGBA8Unorm,
     };
 
@@ -75,7 +72,7 @@ void LoadTextures(Core::Context &ctx) {
         wgpu::ImageCopyTexture destination;
         destination.texture = texture;
         destination.mipLevel = 0;
-        destination.origin = {0, 0, 0};
+        destination.origin = {0, 0, 1};
         destination.aspect = wgpu::TextureAspect::All;
 
         wgpu::TextureDataLayout source;
@@ -99,7 +96,7 @@ void LoadTextures(Core::Context &ctx) {
         wgpu::ImageCopyTexture destination;
         destination.texture = texture;
         destination.mipLevel = 0;
-        destination.origin = {0, 0, 1};
+        destination.origin = {0, 0, 2};
         destination.aspect = wgpu::TextureAspect::All;
 
         wgpu::TextureDataLayout source;
@@ -130,9 +127,36 @@ void Render(Core::Context &ctx) {
     wgpu::CommandEncoder encoder = ctx.m_Device.CreateCommandEncoder();
 
 
+    wgpu::RenderPassColorAttachment colorAttachment{
+        .view = surfaceTexture.texture.CreateView(),
+        .loadOp = wgpu::LoadOp::Clear,
+        .storeOp = wgpu::StoreOp::Store,
+        .clearValue = wgpu::Color{0.1f, 0.2f, 0.3f, 1.0f},
+    };
+
+    wgpu::RenderPassDepthStencilAttachment renderPassDepthStencilAttachment{
+        .view = pipelines.m_DepthTexture.CreateView(),
+        .depthLoadOp = wgpu::LoadOp::Clear,
+        .depthStoreOp = wgpu::StoreOp::Store,
+        .depthClearValue = 1.0f
+    };
+
+    wgpu::RenderPassDescriptor renderPassDescriptor{
+        .label = "Clear Render Pass",
+        .colorAttachmentCount = 1,
+        .colorAttachments = &colorAttachment,
+        .depthStencilAttachment = &renderPassDepthStencilAttachment,
+    };
+
+    wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDescriptor);
+    pass.End();
+
     for (auto &chunk: chunks) {
         chunk.Render(ctx, pipelines, encoder, surfaceTexture, camera);
     }
+
+
+    Test::RenderTest(ctx, encoder, surfaceTexture);
 
 
     // Start the Dear ImGui frame
@@ -145,13 +169,7 @@ void Render(Core::Context &ctx) {
 
     ImGui::Begin("Chunks");
 
-    for (auto &chunk: chunks) {
-        ImGui::PushID(&chunk);
-        ImGui::Text("Chunk: %f %f %f", chunk.m_ChunkPosition.x, chunk.m_ChunkPosition.y, chunk.m_ChunkPosition.z);
-        ImGui::InputFloat3("Position", &chunk.m_ChunkPosition.x);
-        ImGui::Separator();
-        ImGui::PopID();
-    }
+
     ImGui::End();
 
 
@@ -206,6 +224,14 @@ void Start() {
     pipelines.Initialize(ctx);
 
 
+    for(int x = -4; x < 4; x++) {
+        for(int z = -4; z < 4; z++) {
+            chunks.emplace_back(glm::vec3(x, 0, z));
+        }
+    }
+    printf("c: %d\n", chunks.size());
+
+
     for (auto &chunk: chunks) {
         chunk.GenerateChunk();
         chunk.BuildMesh(ctx, pipelines, sampler, texture);
@@ -218,6 +244,9 @@ void Start() {
 
 
     SetupImGui(ctx);
+
+
+    Test::SetupTest(ctx);
 
 
     while (!glfwWindowShouldClose(Core::Context::m_Window)) {
