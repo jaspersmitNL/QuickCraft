@@ -13,6 +13,7 @@ struct VertexOutput {
 struct Uniforms {
     uProjection: mat4x4<f32>,
     uView: mat4x4<f32>,
+    uModel: mat4x4<f32>,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -22,7 +23,7 @@ struct Uniforms {
 
 @vertex fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    out.pos = uniforms.uProjection * uniforms.uView * vec4<f32>(in.pos, 1.0);
+    out.pos = uniforms.uProjection * uniforms.uView * uniforms.uModel * vec4<f32>(in.pos, 1.0);
     out.uv = in.uv;
     out.blockID = in.blockID;
     return out;

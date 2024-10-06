@@ -31,6 +31,9 @@ namespace Core {
     }
 
     void Context::SetupDevice() {
+
+
+
         wgpu::DeviceDescriptor deviceDescriptor{};
         deviceDescriptor.label = "Default Device";
         deviceDescriptor.deviceLostCallbackInfo.mode = wgpu::CallbackMode::AllowSpontaneous;
@@ -46,6 +49,12 @@ namespace Core {
                 fprintf(stderr, "Message: %s\n", message);
             }
         };
+
+        wgpu::RequiredLimits requiredLimits{};
+        requiredLimits.limits.maxBufferSize = 1099511627776; //
+
+        deviceDescriptor.requiredLimits = &requiredLimits;
+
 
         wgpu::Future future = m_Adapter.RequestDevice(
             &deviceDescriptor,

@@ -2,95 +2,37 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_wgpu.h>
+
 
 #include "core/Context.hpp"
-#include "game/Pipelines.hpp"
 #include "core/Utils.hpp"
+#include "game/Pipelines.hpp"
+#include "game/Vertex.hpp"
+#include "game/Camera.hpp"
+
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.hpp"
-#include "game/Camera.hpp"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_wgpu.h"
+#include "FastNoiseLite.hpp"
+#include "game/world/Chunk.hpp"
 
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec2 uv;
-    uint32_t blockID;
-};
-
-
-std::vector<Vertex> vertices2 = {
-
-
-    //BACK
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-    {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}}, // b-right
-    {{0.5f, 0.5f, -0.5f}, {1.0f, 0.0f}}, // t-right
-    {{0.5f, 0.5f, -0.5f}, {1.0f, 0.0f}}, // t-right
-    {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f}}, // t-left
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-
-    //FRONT
-    {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}}, // b-left
-    {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // b-right
-    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}}, // t-left
-    {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}}, // b-left
-
-    //LEFT
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-    {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // b-right
-    {{-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{-0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f}}, // t-left
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-
-    //RIGHT
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-    {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}}, // b-right
-    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f}}, // t-left
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-
-    //TOP
-    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-    {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}}, // b-right
-    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}}, // t-left
-    {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-
-    //BOTTOM
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-    {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}}, // b-right
-    {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}}, // t-right
-    {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}}, // t-left
-    {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}}, // b-left
-
-
-};
-std::vector<Vertex> vertices;
-
-struct Uniforms {
-    glm::mat4 uProjection;
-    glm::mat4 uView;
-    glm::mat4 uModel;
-} uniforms;
 
 Camera camera(45.0f, 0.1f, 200.0f);
 
 Pipelines pipelines;
-wgpu::Texture depthTexture;
-wgpu::Buffer vertexBuffer;
-wgpu::Buffer uniformBuffer;
+
 wgpu::Texture texture;
 wgpu::Sampler sampler;
-wgpu::BindGroup uniformBindGroup;
 
+
+std::vector<Chunk> chunks = {
+    Chunk(glm::vec3(-1, 0, -2)),
+    Chunk(glm::vec3(1, 0, -2)),
+
+};
 
 unsigned char *LoadImage(const char *path) {
     int width, height, channels;
@@ -175,7 +117,6 @@ void LoadTextures(Core::Context &ctx) {
         samplerDescriptor.magFilter = wgpu::FilterMode::Linear;
         sampler = ctx.m_Device.CreateSampler(&samplerDescriptor);
     }
-
 }
 
 
@@ -185,50 +126,13 @@ void Render(Core::Context &ctx) {
     wgpu::SurfaceTexture surfaceTexture;
     ctx.m_Surface.GetCurrentTexture(&surfaceTexture);
 
-    wgpu::RenderPassColorAttachment colorAttachment{
-        .view = surfaceTexture.texture.CreateView(),
-        .loadOp = wgpu::LoadOp::Clear,
-        .storeOp = wgpu::StoreOp::Store,
-        .clearValue = wgpu::Color{0.0f, 0.0f, 0.0f, 1.0f},
-    };
-
-    wgpu::RenderPassDepthStencilAttachment renderPassDepthStencilAttachment{
-        .view = depthTexture.CreateView(),
-        .depthLoadOp = wgpu::LoadOp::Clear,
-        .depthStoreOp = wgpu::StoreOp::Store,
-        .depthClearValue = 1.0f,
-    };
-
-
-    wgpu::RenderPassDescriptor renderPassDescriptor{
-        .label = "Render Pass",
-        .colorAttachmentCount = 1,
-        .colorAttachments = &colorAttachment,
-        .depthStencilAttachment = &renderPassDepthStencilAttachment,
-
-    };
-
-    uniforms.uProjection = camera.GetProjection();
-    uniforms.uView = camera.GetView();
-
-    float time = (float) glfwGetTime();
-    uniforms.uModel = glm::mat4(1.0f);
-
-    // uniforms.uModel = glm::rotate(glm::mat4(1.0f), time, glm::vec3(1.0f, 1.0f, 0.0f));
-    ctx.m_Queue.WriteBuffer(uniformBuffer, 0, &uniforms, sizeof(Uniforms));
-
 
     wgpu::CommandEncoder encoder = ctx.m_Device.CreateCommandEncoder();
 
 
-    wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDescriptor);
-    pass.SetPipeline(pipelines.m_ChunkPipeline);
-    pass.SetBindGroup(0, uniformBindGroup);
-
-
-    pass.SetVertexBuffer(0, vertexBuffer);
-    pass.Draw(vertices.size(), 1, 0, 0);
-    pass.End();
+    for (auto &chunk: chunks) {
+        chunk.Render(ctx, pipelines, encoder, surfaceTexture, camera);
+    }
 
 
     // Start the Dear ImGui frame
@@ -237,8 +141,18 @@ void Render(Core::Context &ctx) {
     ImGui::NewFrame();
 
 
-    bool demo = true;
-    ImGui::ShowDemoWindow(&demo);
+
+
+    ImGui::Begin("Chunks");
+
+    for (auto &chunk: chunks) {
+        ImGui::PushID(&chunk);
+        ImGui::Text("Chunk: %f %f %f", chunk.m_ChunkPosition.x, chunk.m_ChunkPosition.y, chunk.m_ChunkPosition.z);
+        ImGui::InputFloat3("Position", &chunk.m_ChunkPosition.x);
+        ImGui::Separator();
+        ImGui::PopID();
+    }
+    ImGui::End();
 
 
     ImGui::Render();
@@ -289,71 +203,13 @@ void Start() {
 
     LoadTextures(ctx);
 
-
-    for (int x = -8; x < 8; x++) {
-        for (int y = -8; y < 8; y++)
-            for (int z = -8; z < 8; z++) {
-
-                uint32_t blockID = (x + y + z) % 2 == 0;
-
-
-                auto verts = vertices2;
-                for (auto &v: verts) {
-                    glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z));
-                    glm::vec3 pos(model * glm::vec4(v.pos, 1.0f));
-
-                    vertices.push_back({pos, v.uv, blockID});
-
-                }
-            }
-    }
-
-
-    vertexBuffer = Core::CreateBufferFromData(ctx.m_Device, wgpu::BufferUsage::Vertex, vertices.data(),
-                                              vertices.size() * sizeof(Vertex));
-
-
-    uniformBuffer = Core::CreateBufferFromData(ctx.m_Device, wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst,
-                                               &uniforms, sizeof(Uniforms));
-
     pipelines.Initialize(ctx);
 
 
-    depthTexture = ctx.m_Device.CreateTexture(ToPtr(wgpu::TextureDescriptor{
-        .label = "Depth Texture",
-        .usage = wgpu::TextureUsage::RenderAttachment,
-        .dimension = wgpu::TextureDimension::e2D,
-        .size = {ctx.m_Width, ctx.m_Height, 1},
-        .format = wgpu::TextureFormat::Depth24Plus,
-        .mipLevelCount = 1,
-        .sampleCount = 1
-    }));
-
-    wgpu::BindGroupEntry bindGroupEntries[3] = {
-        {
-            .binding = 0,
-            .buffer = uniformBuffer,
-            .offset = 0,
-            .size = sizeof(Uniforms),
-        },
-        {
-            .binding = 1,
-            .sampler = sampler,
-        },
-        {
-            .binding = 2,
-            .textureView = texture.CreateView()
-        }
-    };
-
-    wgpu::BindGroupDescriptor bindGroupDescriptor{
-        .label = "Uniform Bind Group",
-        .layout = pipelines.m_ChunkPipeline.GetBindGroupLayout(0),
-        .entryCount = 3,
-        .entries = bindGroupEntries,
-    };
-
-    uniformBindGroup = ctx.m_Device.CreateBindGroup(&bindGroupDescriptor);
+    for (auto &chunk: chunks) {
+        chunk.GenerateChunk();
+        chunk.BuildMesh(ctx, pipelines, sampler, texture);
+    }
 
 
     camera.OnResize(ctx.m_Width, ctx.m_Height);
@@ -371,17 +227,7 @@ void Start() {
 
         if (width != ctx.m_Width || height != ctx.m_Height) {
             ctx.OnResize(width, height);
-
-            depthTexture.Destroy();
-            depthTexture = ctx.m_Device.CreateTexture(ToPtr(wgpu::TextureDescriptor{
-                .label = "Depth Texture",
-                .usage = wgpu::TextureUsage::RenderAttachment,
-                .dimension = wgpu::TextureDimension::e2D,
-                .size = {ctx.m_Width, ctx.m_Height, 1},
-                .format = wgpu::TextureFormat::Depth24Plus,
-                .mipLevelCount = 1,
-                .sampleCount = 1
-            }));
+            pipelines.OnResize(ctx);
 
             camera.OnResize(width, height);
         }
