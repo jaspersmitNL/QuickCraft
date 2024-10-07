@@ -19,6 +19,7 @@
 #include "FastNoiseLite.hpp"
 #include "Test.hpp"
 #include "game/world/Chunk.hpp"
+#include "game/world/World.hpp"
 
 
 Camera camera(45.0f, 0.1f, 200.0f);
@@ -27,9 +28,10 @@ Pipelines pipelines;
 
 wgpu::Texture texture;
 wgpu::Sampler sampler;
-
-
 std::vector<Chunk> chunks = {};
+
+World world;
+
 
 unsigned char *LoadImage(const char *path) {
     int width, height, channels;
@@ -151,12 +153,13 @@ void Render(Core::Context &ctx) {
     wgpu::RenderPassEncoder pass = encoder.BeginRenderPass(&renderPassDescriptor);
     pass.End();
 
-    for (auto &chunk: chunks) {
-        chunk.Render(ctx, pipelines, encoder, surfaceTexture, camera);
-    }
+    // for (auto &chunk: chunks) {
+    //     chunk.Render(ctx, pipelines, encoder, surfaceTexture, camera);
+    // }
+
+    world.Render(ctx, encoder, surfaceTexture, pipelines.m_DepthTexture, camera);
 
 
-    Test::RenderTest(ctx, encoder, surfaceTexture);
 
 
     // Start the Dear ImGui frame
@@ -223,19 +226,21 @@ void Start() {
 
     pipelines.Initialize(ctx);
 
-
-    for(int x = -4; x < 4; x++) {
-        for(int z = -4; z < 4; z++) {
-            chunks.emplace_back(glm::vec3(x, 0, z));
-        }
-    }
-    printf("c: %d\n", chunks.size());
+    world.Initialize(ctx);
 
 
-    for (auto &chunk: chunks) {
-        chunk.GenerateChunk();
-        chunk.BuildMesh(ctx, pipelines, sampler, texture);
-    }
+    // for(int x = -4; x < 4; x++) {
+    //     for(int z = -4; z < 4; z++) {
+    //         chunks.emplace_back(glm::vec3(x, 0, z));
+    //     }
+    // }
+    // printf("c: %d\n", chunks.size());
+    //
+    //
+    // for (auto &chunk: chunks) {
+    //     chunk.GenerateChunk();
+    //     chunk.BuildMesh(ctx, pipelines, sampler, texture);
+    // }
 
 
     camera.OnResize(ctx.m_Width, ctx.m_Height);
@@ -246,7 +251,6 @@ void Start() {
     SetupImGui(ctx);
 
 
-    Test::SetupTest(ctx);
 
 
     while (!glfwWindowShouldClose(Core::Context::m_Window)) {

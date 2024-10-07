@@ -7,6 +7,7 @@ struct VertexOutput {
     @builtin(position) pos: vec4<f32>
 }
 
+
 @vertex
 fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
     var out: VertexOutput;
