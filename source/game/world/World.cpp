@@ -1,15 +1,87 @@
+#include <chrono>
+#include <iostream>
+#include <glm/gtc/matrix_transform.hpp>
+#include <thread>
+#include <vector>
+#include <future>
+#include <iostream>
+#include <mutex>
+
 #include "World.hpp"
 #include "core/Utils.hpp"
 #include "game/Camera.hpp"
 #include "FastNoiseLite.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "imgui.h"
 #include "GLFW/glfw3.h"
 
-int count = 0;
+#define SIZE 512
 
+
+auto GetBlock = [&](int x, int y, int z, const std::vector<unsigned int>& chunkData)-> uint32_t {
+    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
+        return 0;
+    }
+    uint32_t idx = x + z * SIZE + y * SIZE * SIZE;
+    return chunkData[idx];
+};
+
+
+int count = 0;
+std::mutex faceMutex;
+
+enum Face: uint32_t {
+    FRONT = 0,
+    BACK = 1,
+    LEFT = 2,
+    RIGHT = 3,
+    TOP = 4,
+    BOTTOM = 5,
+};
+
+
+void MeshSection(int startX, int endX, int startZ, int endZ, std::vector<BlockFace>& faces, const std::vector<unsigned int>& chunkData) {
+    for (int x = startX; x < endX; x++) {
+        for (int z = startZ; z < endZ; z++) {
+            for (int y = 0; y < SIZE; y++) {
+
+                uint32_t blockID = GetBlock(x, y, z, chunkData);
+
+                if (blockID == 0) {
+                    continue;
+                }
+
+                // Perform face culling as before (checking neighbors)
+                if (GetBlock(x, y, z+1, chunkData) == 0) {
+                    std::lock_guard<std::mutex> lock(faceMutex); // Lock if using shared face vector
+                    faces.push_back({{x, y, z}, FRONT, blockID});
+                }
+                if (GetBlock(x, y, z-1, chunkData) == 0) {
+                    std::lock_guard<std::mutex> lock(faceMutex);
+                    faces.push_back({{x, y, z}, BACK, blockID});
+                }
+                if (GetBlock(x+1, y, z, chunkData) == 0) {
+                    std::lock_guard<std::mutex> lock(faceMutex);
+                    faces.push_back({{x, y, z}, LEFT, blockID});
+                }
+                if (GetBlock(x-1, y, z, chunkData) == 0) {
+                    std::lock_guard<std::mutex> lock(faceMutex);
+                    faces.push_back({{x, y, z}, RIGHT, blockID});
+                }
+                if (GetBlock(x, y+1, z, chunkData) == 0) {
+                    std::lock_guard<std::mutex> lock(faceMutex);
+                    faces.push_back({{x, y, z}, TOP, blockID});
+                }
+                if (GetBlock(x, y-1, z, chunkData) == 0) {
+                    std::lock_guard<std::mutex> lock(faceMutex);
+                    faces.push_back({{x, y, z}, BOTTOM, blockID});
+                }
+
+            }
+        }
+    }
+}
 void World::Initialize(Core::Context &ctx) {
     std::vector<BlockFaceVert> vertices = {
         {glm::vec3(-0.5f, -0.5f, 0.5f)}, // bottom left
@@ -84,19 +156,12 @@ void World::Initialize(Core::Context &ctx) {
         return height;
     };
 
-#define SIZE 512
 
     std::vector<unsigned int> chunkData(SIZE * SIZE * SIZE);
 
-    auto GetBlock = [&](int x, int y, int z) -> uint32_t {
-        if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
-            return 0;
-        }
-        uint32_t idx = x + z * SIZE + y * SIZE * SIZE;
-        return chunkData[idx];
-    };
 
 
+    auto start = std::chrono::high_resolution_clock::now();
     for (int x = 0; x < SIZE; x++) {
         for (int z = 0; z < SIZE; z++) {
             int height = getHeight(x, z);
@@ -107,50 +172,84 @@ void World::Initialize(Core::Context &ctx) {
             }
         }
     }
-
-
-    enum Face: uint32_t {
-        FRONT = 0,
-        BACK = 1,
-        LEFT = 2,
-        RIGHT = 3,
-        TOP = 4,
-        BOTTOM = 5,
-    };
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Generation took: " << duration.count() << "ms" << std::endl;
 
 
 
-    for (int x = 0; x < SIZE; x++) {
-        for (int z = 0; z < SIZE; z++) {
-            for(int y = 0; y < SIZE; y++) {
 
-                uint32_t blockID = GetBlock(x, y, z);
 
-                if (blockID == 0) {
-                    continue;
-                }
+    start = std::chrono::high_resolution_clock::now();
 
-                if (GetBlock(x, y, z+1) == 0) {
-                    faces.push_back({{x, y, z}, FRONT, blockID});
-                }
-                if (GetBlock(x, y, z-1) == 0) {
-                    faces.push_back({{x, y, z}, BACK, blockID});
-                }
-                if (GetBlock(x+1, y, z) == 0) {
-                    faces.push_back({{x, y, z}, LEFT, blockID});
-                }
-                if (GetBlock(x-1, y, z) == 0) {
-                    faces.push_back({{x, y, z}, RIGHT, blockID});
-                }
-                if (GetBlock(x, y+1, z) == 0) {
-                    faces.push_back({{x, y, z}, TOP, blockID});
-                }
-                if (GetBlock(x, y-1, z) == 0) {
-                    faces.push_back({{x, y, z}, BOTTOM, blockID});
-                }
-            }
-        }
+
+    int batchCount = 12;
+
+    std::vector<std::vector<BlockFace>> faceSections(batchCount);
+
+    // Calculate the size of each chunk based on the batch count
+    int chunkSize = SIZE / batchCount;
+
+    // Vector to store the future objects for each thread
+    std::vector<std::future<void>> futures;
+
+    // Launch threads dynamically
+    for (int i = 0; i < batchCount; i++) {
+        int startX = i * chunkSize;
+        int endX = (i == batchCount - 1) ? SIZE : (i + 1) * chunkSize;  // Ensure last chunk covers the remainder
+
+        futures.push_back(
+            std::async(std::launch::async, MeshSection, startX, endX, 0, SIZE, std::ref(faceSections[i]), std::ref(chunkData))
+        );
     }
+
+    // Wait for all threads to complete
+    for (auto& future : futures) {
+        future.get();
+    }
+
+    // Combine results into the final face vector
+    for (const auto& sectionFaces : faceSections) {
+        faces.insert(faces.end(), sectionFaces.begin(), sectionFaces.end());
+    }
+
+    count = faces.size();
+
+    // for (int x = 0; x < SIZE; x++) {
+    //     for (int z = 0; z < SIZE; z++) {
+    //         for(int y = 0; y < SIZE; y++) {
+    //
+    //             uint32_t blockID = GetBlock(x, y, z);
+    //
+    //             if (blockID == 0) {
+    //                 continue;
+    //             }
+    //
+    //             if (GetBlock(x, y, z+1) == 0) {
+    //                 faces.push_back({{x, y, z}, FRONT, blockID});
+    //             }
+    //             if (GetBlock(x, y, z-1) == 0) {
+    //                 faces.push_back({{x, y, z}, BACK, blockID});
+    //             }
+    //             if (GetBlock(x+1, y, z) == 0) {
+    //                 faces.push_back({{x, y, z}, LEFT, blockID});
+    //             }
+    //             if (GetBlock(x-1, y, z) == 0) {
+    //                 faces.push_back({{x, y, z}, RIGHT, blockID});
+    //             }
+    //             if (GetBlock(x, y+1, z) == 0) {
+    //                 faces.push_back({{x, y, z}, TOP, blockID});
+    //             }
+    //             if (GetBlock(x, y-1, z) == 0) {
+    //                 faces.push_back({{x, y, z}, BOTTOM, blockID});
+    //             }
+    //         }
+    //     }
+    // }
+
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << "Meshing took: " << duration.count() << "ms" << std::endl;
 
 
     count = faces.size();
