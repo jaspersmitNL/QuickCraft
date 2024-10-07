@@ -12,6 +12,7 @@ struct BlockFaceVert {
 struct BlockFace {
     glm::vec3 center;
     uint32_t orientation;
+    uint32_t blockID;
 };
 
 struct WorldUniforms {

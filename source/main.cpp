@@ -22,7 +22,7 @@
 #include "game/world/World.hpp"
 
 
-Camera camera(45.0f, 0.1f, 200.0f);
+Camera camera(45.0f, 0.1f, 500.0f);
 
 Pipelines pipelines;
 
@@ -157,8 +157,6 @@ void Render(Core::Context &ctx) {
     //     chunk.Render(ctx, pipelines, encoder, surfaceTexture, camera);
     // }
 
-    world.Render(ctx, encoder, surfaceTexture, pipelines.m_DepthTexture, camera);
-
 
 
 
@@ -168,6 +166,9 @@ void Render(Core::Context &ctx) {
     ImGui::NewFrame();
 
 
+    world.Render(ctx, encoder, surfaceTexture, pipelines.m_DepthTexture, camera);
+
+
 
 
     ImGui::Begin("Camera");
@@ -175,7 +176,6 @@ void Render(Core::Context &ctx) {
     if(ImGui::InputFloat3("Pos", &pos.x)) {
         camera.SetPosition(pos);
     }
-
     ImGui::End();
 
 

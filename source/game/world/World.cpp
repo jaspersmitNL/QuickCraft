@@ -5,6 +5,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "imgui.h"
+#include "GLFW/glfw3.h"
+
 int count = 0;
 
 void World::Initialize(Core::Context &ctx) {
@@ -81,23 +84,71 @@ void World::Initialize(Core::Context &ctx) {
         return height;
     };
 
-#define SIZE 90
+#define SIZE 512
 
-    for (int x = -SIZE; x < SIZE; x++) {
-        for (int z = -SIZE; z < SIZE; z++) {
+    std::vector<unsigned int> chunkData(SIZE * SIZE * SIZE);
+
+    auto GetBlock = [&](int x, int y, int z) -> uint32_t {
+        if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
+            return 0;
+        }
+        uint32_t idx = x + z * SIZE + y * SIZE * SIZE;
+        return chunkData[idx];
+    };
+
+
+    for (int x = 0; x < SIZE; x++) {
+        for (int z = 0; z < SIZE; z++) {
             int height = getHeight(x, z);
             for(int y = 0; y < height; y++) {
+                uint32_t blockID = (x + y + z) % 2 == 0 ? 1 : 2;
+                uint32_t idx = x + z * SIZE + y * SIZE * SIZE;
+                chunkData[idx] = blockID;
+            }
+        }
+    }
+
+
+    enum Face: uint32_t {
+        FRONT = 0,
+        BACK = 1,
+        LEFT = 2,
+        RIGHT = 3,
+        TOP = 4,
+        BOTTOM = 5,
+    };
 
 
 
-                for(auto face : AllFaces) {
-                    //checkerboard using x y z
-                    face.blockID = (x + y + z) % 2 == 0 ? 1 : 2;
-                    face.center = glm::vec3(x, y, z);
-                    faces.push_back(face);
+    for (int x = 0; x < SIZE; x++) {
+        for (int z = 0; z < SIZE; z++) {
+            for(int y = 0; y < SIZE; y++) {
+
+                uint32_t blockID = GetBlock(x, y, z);
+
+                if (blockID == 0) {
+                    continue;
+                }
+
+                if (GetBlock(x, y, z+1) == 0) {
+                    faces.push_back({{x, y, z}, FRONT, blockID});
+                }
+                if (GetBlock(x, y, z-1) == 0) {
+                    faces.push_back({{x, y, z}, BACK, blockID});
+                }
+                if (GetBlock(x+1, y, z) == 0) {
+                    faces.push_back({{x, y, z}, LEFT, blockID});
+                }
+                if (GetBlock(x-1, y, z) == 0) {
+                    faces.push_back({{x, y, z}, RIGHT, blockID});
+                }
+                if (GetBlock(x, y+1, z) == 0) {
+                    faces.push_back({{x, y, z}, TOP, blockID});
+                }
+                if (GetBlock(x, y-1, z) == 0) {
+                    faces.push_back({{x, y, z}, BOTTOM, blockID});
                 }
             }
-
         }
     }
 
@@ -209,6 +260,21 @@ void World::Initialize(Core::Context &ctx) {
 
 void World::Render(Core::Context &ctx, wgpu::CommandEncoder encoder, wgpu::SurfaceTexture &surfaceTexture,
                    wgpu::Texture &depthTexture, Camera &camera) {
+
+
+
+    ImGui::Begin("Overlay");
+    ImGui::Text("Count: %d", count);
+    //fps
+    static float fps = 0;
+    static float lastTime = 0;
+    float currentTime = glfwGetTime();
+    fps = 1.0f / (currentTime - lastTime);
+    lastTime = currentTime;
+    ImGui::Text("FPS: %.2f", fps);
+
+    ImGui::End();
+
     m_Uniforms.projection = camera.GetProjection();
     m_Uniforms.view = camera.GetView();
 
