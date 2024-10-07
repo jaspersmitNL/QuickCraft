@@ -2,6 +2,7 @@ struct VertexAndInstanceInput {
     @location(0) pos: vec3<f32>,
     @location(1) center: vec3<f32>,
     @location(2) orientation: u32,
+    @location(3) blockID: u32,
 }
 
 struct VertexOutput {
@@ -103,13 +104,25 @@ fn get_color(face: u32) -> vec3<f32> {
     return vec3<f32>(0.0, 0.0, 0.0);
 }
 
+fn get_color_block(id: u32) -> vec3<f32> {
+
+    if(id == 1) {
+        return vec3<f32>(1.0, 0.0, 0.0);
+    }
+     else if (id == 2) {
+        return vec3<f32>(0.0, 1.0, 0.0);
+     }
+
+    return vec3<f32>(0.0, 0.0, 0.0);
+}
+
 @vertex
 fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
     var out: VertexOutput;
 
     var rot_mat = get_rot_matrix(in.orientation);
 
-    out.color = vec4<f32>(get_color(in.orientation), 1.0);
+    out.color = vec4<f32>(get_color_block(in.blockID), 1.0);
 
     var rotated_pos = rot_mat * in.pos;
 

@@ -170,8 +170,11 @@ void Render(Core::Context &ctx) {
 
 
 
-    ImGui::Begin("Chunks");
-
+    ImGui::Begin("Camera");
+    auto pos = camera.GetPosition();
+    if(ImGui::InputFloat3("Pos", &pos.x)) {
+        camera.SetPosition(pos);
+    }
 
     ImGui::End();
 

@@ -1,6 +1,8 @@
 #include "World.hpp"
 #include "core/Utils.hpp"
 #include "game/Camera.hpp"
+#include "FastNoiseLite.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 int count = 0;
@@ -28,12 +30,69 @@ void World::Initialize(Core::Context &ctx) {
     std::vector<BlockFace> faces;
 
 
-#define SIZE 8
+
+    int seed = 1337;
+
+    FastNoiseLite terrain;
+    terrain.SetSeed(seed);
+    terrain.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    terrain.SetFrequency(0.001f);
+
+    FastNoiseLite forest;
+    forest.SetSeed(seed);
+    forest.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    forest.SetFractalType(FastNoiseLite::FractalType_Ridged);
+
+
+    FastNoiseLite mountain;
+    mountain.SetSeed(seed);
+    mountain.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    mountain.SetFractalType(FastNoiseLite::FractalType_Ridged);
+    mountain.SetFrequency(0.005f);
+
+
+    FastNoiseLite river;
+    river.SetSeed(seed);
+    river.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    river.SetFractalType(FastNoiseLite::FractalType_Ridged);
+    river.SetFrequency(0.001f);
+
+
+
+    auto getHeight = [&](float x, float z) {
+        int height;
+
+        float noise = abs(terrain.GetNoise(x, z) + 0.5f);
+        if (noise < 0.05f)
+        {
+            height = (int)abs(8 * (river.GetNoise(x, z) + 0.8f)) + 30;
+        }
+
+        else if (noise < 1.2f)
+        {
+            height = (int)abs(10 * (forest.GetNoise(x, z) + 0.8f)) + 30;
+        }
+
+        else
+        {
+            height = (int)abs(30 * (mountain.GetNoise(x, z) + 0.8f)) + 30;
+        }
+
+        return height;
+    };
+
+#define SIZE 90
 
     for (int x = -SIZE; x < SIZE; x++) {
         for (int z = -SIZE; z < SIZE; z++) {
-            for(int y = 0; y < SIZE; y++) {
+            int height = getHeight(x, z);
+            for(int y = 0; y < height; y++) {
+
+
+
                 for(auto face : AllFaces) {
+                    //checkerboard using x y z
+                    face.blockID = (x + y + z) % 2 == 0 ? 1 : 2;
                     face.center = glm::vec3(x, y, z);
                     faces.push_back(face);
                 }
@@ -76,16 +135,21 @@ void World::Initialize(Core::Context &ctx) {
             .shaderLocation = 0,
         }
     };
-    wgpu::VertexAttribute instanceAttributes[2] = {
+    wgpu::VertexAttribute instanceAttributes[3] = {
         {
             .format = wgpu::VertexFormat::Float32x3,
-            .offset = 0,
+            .offset = offsetof(BlockFace, center),
             .shaderLocation = 1,
         },
         {
             .format = wgpu::VertexFormat::Uint32,
-            .offset = sizeof(glm::vec3),
+            .offset = offsetof(BlockFace, orientation),
             .shaderLocation = 2,
+        },
+        {
+            .format = wgpu::VertexFormat::Uint32,
+            .offset = offsetof(BlockFace, blockID),
+            .shaderLocation = 3,
         }
     };
     wgpu::VertexBufferLayout bufferLayouts[2] = {
@@ -98,7 +162,7 @@ void World::Initialize(Core::Context &ctx) {
         {
             .arrayStride = sizeof(BlockFace),
             .stepMode = wgpu::VertexStepMode::Instance,
-            .attributeCount = 2,
+            .attributeCount = 3,
             .attributes = instanceAttributes,
         }
     };
