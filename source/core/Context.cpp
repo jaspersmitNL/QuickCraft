@@ -83,7 +83,7 @@ namespace Core {
 
         wgpu::AdapterInfo adapterInfo;
         m_Adapter.GetInfo(&adapterInfo);
-        std::cout << "Adapter name: " << adapterInfo.description << std::endl;
+        std::cout << "Adapter name: " << adapterInfo.device << std::endl;
 
         m_Queue = m_Device.GetQueue();
         m_Surface.GetCapabilities(m_Adapter, &m_SurfaceCapabilities);

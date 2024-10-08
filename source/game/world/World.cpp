@@ -16,7 +16,7 @@
 #include "imgui.h"
 #include "GLFW/glfw3.h"
 
-#define SIZE 512
+#define SIZE 64
 
 
 auto GetBlock = [&](int x, int y, int z, const std::vector<unsigned int>& chunkData)-> uint32_t {
