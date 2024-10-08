@@ -90,14 +90,7 @@ namespace Core {
         m_SurfaceTextureFormat = m_SurfaceCapabilities.formats[0];
 
 
-        m_Surface.Configure(ToPtr(wgpu::SurfaceConfiguration{
-
-            .device = m_Device,
-            .format = m_SurfaceTextureFormat,
-            .width = m_Width,
-            .height = m_Height,
-            .presentMode = wgpu::PresentMode::Immediate
-        }));
+        this->OnResize(m_Width, m_Height);
     }
 
 
@@ -130,11 +123,17 @@ namespace Core {
         glfwShowWindow(m_Window);
     }
 
+    Context::~Context() {
+        printf("Destroying Context\n");
+        glfwDestroyWindow(m_Window);
+        glfwTerminate();
+    }
+
     void Context::OnResize(uint32_t width, uint32_t height) {
         this->m_Width = width;
         this->m_Height = height;
+        printf("Resizing to %d x %d\n", width, height);
 
-        // Recreate the surface
         m_Surface.Configure(ToPtr(wgpu::SurfaceConfiguration{
             .device = m_Device,
             .format = m_SurfaceTextureFormat,
@@ -143,8 +142,23 @@ namespace Core {
             .presentMode = wgpu::PresentMode::Immediate
         }));
 
-        // Recreate the swap chain
-        // Recreate the render pass
+
+        if (m_DepthTexture) {
+            m_DepthTexture.Destroy();
+        }
+
+        wgpu::TextureDescriptor depthTextureDescriptor{
+            .label = "Depth Texture",
+              .usage = wgpu::TextureUsage::RenderAttachment,
+              .dimension = wgpu::TextureDimension::e2D,
+              .size = {m_Width, m_Height, 1},
+              .format = wgpu::TextureFormat::Depth24Plus,
+              .mipLevelCount = 1,
+              .sampleCount = 1
+        };
+
+        m_DepthTexture = m_Device.CreateTexture(&depthTextureDescriptor);
+
 
     }
 }

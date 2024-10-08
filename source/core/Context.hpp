@@ -18,7 +18,11 @@ namespace Core {
         wgpu::TextureFormat m_SurfaceTextureFormat;
 
 
+        wgpu::Texture m_DepthTexture;
+
+
         Context(int width, int height, const char* title);
+        ~Context();
 
         void OnResize(uint32_t width, uint32_t height);
 

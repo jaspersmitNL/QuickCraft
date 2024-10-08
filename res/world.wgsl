@@ -14,6 +14,7 @@ struct VertexOutput {
 struct Uniforms {
     uProj: mat4x4<f32>,
     uView: mat4x4<f32>,
+    uModel: mat4x4<f32>,
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -128,7 +129,7 @@ fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
 
     var translated_pos = rotated_pos + in.center;
 
-    out.pos = uniforms.uProj * uniforms.uView * vec4<f32>(translated_pos, 1.0);
+    out.pos = uniforms.uProj * uniforms.uView * uniforms.uModel * vec4<f32>(translated_pos, 1.0);
 
     return out;
 }
