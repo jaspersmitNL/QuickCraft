@@ -174,23 +174,48 @@ void WorldRenderer::Render(wgpu::CommandEncoder &commandEncoder, wgpu::SurfaceTe
     pass.SetPipeline(m_Pipeline);
     pass.SetVertexBuffer(0, m_VertexBuffer);
 
-    for (auto &[key, chunk]: m_World->m_Chunks) {
-        if (!chunk->m_IsReady) continue;
+    auto camPos = camera->GetPosition();
 
-        chunk->m_Uniforms.projection = camera->GetProjection();
-        chunk->m_Uniforms.view = camera->GetView();
-        chunk->m_Uniforms.model = glm::translate(glm::mat4(1.0f), glm::vec3(
-                                                     chunk->m_Position.x * CHUNK_SIZE,
-                                                     chunk->m_Position.y * CHUNK_SIZE,
-                                                     chunk->m_Position.z * CHUNK_SIZE
-                                                 ));
+#define RENDER_SIZE 8
+
+    //render a 4x4 chunks around the camera
+    glm::ivec3 start = {
+        (int) (camPos.x / CHUNK_SIZE) - RENDER_SIZE / 2,
+        (int) (camPos.y / CHUNK_SIZE) - RENDER_SIZE / 2,
+        (int) (camPos.z / CHUNK_SIZE) - RENDER_SIZE / 2
+    };
+
+    for (int x = start.x; x < start.x + RENDER_SIZE; x++) {
+        for (int z = start.z; z < start.z + RENDER_SIZE; z++) {
+                int y = 0;
+                //world m_Chunks is a map of chunks, so we can just get the chunk at the position
+                auto chunk = m_World->m_Chunks[{x, y, z}];
+                if (!chunk) {
+                    chunk = CreateRef<Chunk>(glm::vec3(x, y, z));
+                    m_World->m_Chunks[{x, y, z}] = chunk;
+                    chunk->Generate();
+                    chunk->BuildMesh();
+                }
+                if (!chunk->m_IsReady) continue;
+
+                chunk->m_Uniforms.projection = camera->GetProjection();
+                chunk->m_Uniforms.view = camera->GetView();
+                chunk->m_Uniforms.model = glm::translate(glm::mat4(1.0f), glm::vec3(
+                                                             chunk->m_Position.x * CHUNK_SIZE,
+                                                             chunk->m_Position.y * CHUNK_SIZE,
+                                                             chunk->m_Position.z * CHUNK_SIZE
+                                                         ));
 
 
-        pass.SetBindGroup(0, chunk->m_BindGroup);
-        ctx->m_Device.GetQueue().WriteBuffer(chunk->m_UniformBuffer, 0, &chunk->m_Uniforms, sizeof(ChunkUniforms));
-        pass.SetVertexBuffer(1, chunk->m_InstanceBuffer);
-        pass.Draw(6, chunk->m_VertexCount, 0, 0);
+                pass.SetBindGroup(0, chunk->m_BindGroup);
+                ctx->m_Device.GetQueue().WriteBuffer(chunk->m_UniformBuffer, 0, &chunk->m_Uniforms, sizeof(ChunkUniforms));
+                pass.SetVertexBuffer(1, chunk->m_InstanceBuffer);
+                pass.Draw(6, chunk->m_VertexCount, 0, 0);
+
+
+            }
     }
+
 
     pass.End();
 }

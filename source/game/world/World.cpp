@@ -29,7 +29,6 @@ void World::Generate() {
     }
 }
 
-std::vector<std::thread> threads;
 
 void World::BuildFullMesh() {
     for (auto& [key, chunk] : m_Chunks) {
