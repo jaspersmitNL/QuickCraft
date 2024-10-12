@@ -1,11 +1,12 @@
 #pragma once
 #include "core/Context.hpp"
+#include "core/Ref.hpp"
 
 
 namespace Core {
     class RenderPipelineBuilder {
     public:
-        RenderPipelineBuilder(Core::Context &context) : m_Context(&context) {
+        RenderPipelineBuilder(Ref<Context> ctx) : m_Context(ctx) {
         }
 
         RenderPipelineBuilder &SetShaderModule(wgpu::ShaderModule shaderModule);
@@ -22,7 +23,7 @@ namespace Core {
         wgpu::RenderPipeline Build(const std::string &label = "Render Pipeline");
 
     private:
-        Core::Context *m_Context;
+        Ref<Core::Context> m_Context;
         wgpu::ShaderModule m_ShaderModule;
         std::string m_VertexEntryPoint = "vs_main", m_FragmentEntryPoint = "fs_main";
         std::vector<wgpu::VertexBufferLayout> m_VertexBufferLayouts;

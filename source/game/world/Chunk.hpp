@@ -1,33 +1,19 @@
 #pragma once
+#include "Structs.hpp"
 #include <glm/glm.hpp>
 #include <vector>
-
-#define CHUNK_SIZE 16
-
-
-struct BlockVertex {
-    glm::vec3 position;
-};
-
-struct BlockFace {
-    glm::vec3 center;
-    uint32_t orientation;
-    uint32_t blockID;
-};
-
-struct Uniforms {
-    glm::mat4 projection;
-    glm::mat4 view;
-    glm::mat4 model;
-};
+#include <webgpu/webgpu_cpp.h>
 
 
+#define CHUNK_SIZE 64
 
 
 
 class Chunk {
 public:
-    Chunk(glm::vec3 pos): m_Position(pos) {
+    glm::ivec3 m_Position;
+
+    Chunk(glm::ivec3 pos): m_Position(pos) {
         m_Blocks.resize(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
     }
 
@@ -35,9 +21,10 @@ public:
     void SetBlock(int x, int y, int z, uint32_t block);
 
     void Generate();
+    void BuildMesh();
 
 
-    glm::vec3 m_Position;
+
 
     inline static std::vector<BlockVertex> blockVertices = {
         {glm::vec3(-0.5f, -0.5f, 0.5f)}, // bottom left
@@ -57,6 +44,19 @@ public:
         {{0.0f, 0.0f, 0.0f}, 5}, //bottom
     };
 
+
+    wgpu::Buffer m_InstanceBuffer = nullptr;
+    wgpu::Buffer m_UniformBuffer = nullptr;
+    wgpu::BindGroup m_BindGroup = nullptr;
+
+    ChunkUniforms m_Uniforms{};
+
+    uint32_t m_VertexCount = 0;
+
+    bool m_IsReady = false;
+
+
 private:
     std::vector<uint32_t> m_Blocks;
+    std::vector<BlockFace> m_Faces;
 };

@@ -14,7 +14,7 @@ struct VertexOutput {
 struct Uniforms {
     uProj: mat4x4<f32>,
     uView: mat4x4<f32>,
-    uModel: mat4x4<f32>,
+    uModel: mat4x4<f32>
 }
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -83,27 +83,6 @@ fn get_rot_matrix(face: u32) -> mat3x3<f32> {
     );
 }
 
-fn get_color(face: u32) -> vec3<f32> {
-    if (face == FRONT) {
-        return vec3<f32>(1.0, 0.0, 0.0);
-    }
-    if (face == BACK) {
-        return vec3<f32>(0.0, 1.0, 0.0);
-    }
-    if (face == LEFT) {
-        return vec3<f32>(0.0, 0.0, 1.0);
-    }
-    if (face == RIGHT) {
-        return vec3<f32>(1.0, 1.0, 0.0);
-    }
-    if (face == TOP) {
-        return vec3<f32>(1.0, 0.0, 1.0);
-    }
-    if (face == BOTTOM) {
-        return vec3<f32>(0.0, 1.0, 1.0);
-    }
-    return vec3<f32>(0.0, 0.0, 0.0);
-}
 
 fn get_color_block(id: u32) -> vec3<f32> {
 
@@ -116,6 +95,7 @@ fn get_color_block(id: u32) -> vec3<f32> {
 
     return vec3<f32>(0.0, 0.0, 0.0);
 }
+
 
 @vertex
 fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
@@ -136,5 +116,5 @@ fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return in.color;
+    return vec4<f32>(in.color);
 }

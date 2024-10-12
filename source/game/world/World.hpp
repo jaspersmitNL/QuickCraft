@@ -1,16 +1,19 @@
-//
-// Created by jasper on 8-10-2024.
-//
-
-#ifndef WORLD_HPP
-#define WORLD_HPP
-
-
+#pragma once
+#include "core/Ref.hpp"
+#include "Chunk.hpp"
+#include <map>
 
 class World {
+public:
+    void Init();
+
+    void Generate();
+    void BuildFullMesh();
+
+
+
+    std::vector<Ref<Chunk>> m_Chunks;
+
+
 
 };
-
-
-
-#endif //WORLD_HPP

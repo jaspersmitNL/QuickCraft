@@ -1,16 +1,21 @@
-//
-// Created by jasper on 8-10-2024.
-//
-
-#ifndef WORLDRENDERER_HPP
-#define WORLDRENDERER_HPP
-
-
+#pragma once
+#include "../World.hpp"
+#include <webgpu/webgpu_cpp.h>
 
 class WorldRenderer {
 
+
+public:
+    WorldRenderer(Ref<World> world): m_World(world) {}
+
+    void Init();
+
+    void Render(wgpu::CommandEncoder& commandEncoder, wgpu::SurfaceTexture& surfaceTexture);
+
+    wgpu::RenderPipeline m_Pipeline;
+private:
+    Ref<World> m_World;
+    wgpu::Buffer m_VertexBuffer;
+    wgpu::ShaderModule m_Shader;
+
 };
-
-
-
-#endif //WORLDRENDERER_HPP
