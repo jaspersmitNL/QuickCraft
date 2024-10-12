@@ -130,7 +130,6 @@ void MiniCraft::Test() {
     auto camPos = m_Camera->GetPosition();
 
 
-    // chunk is grid from -4 to 4
     glm::vec3 chunkPos = glm::vec3{std::floor(camPos.x / CHUNK_SIZE), 0, std::floor(camPos.z / CHUNK_SIZE)};
     auto chunk = m_World->m_Chunks[chunkPos];
     if (!chunk) {
@@ -142,23 +141,15 @@ void MiniCraft::Test() {
 
     printf("Found chunk at position: %f, %f\n", chunkPos.x, chunkPos.z);
 
-    //remove a 2x2x2 cube at position
-    int size = 4;
-    for (int x = -size; x <= size; x++) {
-        for (int z = -size; z <= size; z++) {
-            for (int y = -size; y <= size; y++) {
-                //pick random between 0 1 and 2
-                uint32_t blockID = rand() % 3;
-                chunk->SetBlock(blockPos.x + x, blockPos.y + y, blockPos.z + z,  (rand() % 3));
-            }
-        }
-    }
+    chunk->SetBlock(blockPos.x, blockPos.y, blockPos.z, 1); // Grass
+    // int size = 4;
+    // for (int x = -size; x <= size; x++) {
+    //     for (int z = -size; z <= size; z++) {
+    //         for (int y = -size; y <= size; y++) {
+    //             chunk->SetBlock(blockPos.x + x, blockPos.y + y, blockPos.z + z,  (rand() % 3));
+    //         }
+    //     }
+    // }
     chunk->BuildMesh();
-
-    // // set block at position
-    // chunk->SetBlock(blockPos.x, blockPos.y, blockPos.z, 1);
-    // chunk->BuildMesh();
-
-
 
 }

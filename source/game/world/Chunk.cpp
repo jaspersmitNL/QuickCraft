@@ -18,7 +18,6 @@ auto TIME = [](auto start, auto end) {
 static FastNoise *heightNoise;
 
 uint32_t Chunk::GetBlock(int x, int y, int z) {
-
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
         return 0;
     }
@@ -34,6 +33,30 @@ void Chunk::SetBlock(int x, int y, int z, uint32_t block) {
     m_Blocks[idx] = block;
 }
 
+
+uint32_t GetBlockID(glm::vec3 pos, float height) {
+    /*
+    LoadTextures({
+        {1, "../res/grass_top.png"},
+        {2, "../res/grass_side.png"},
+        {3, "../res/dirt.png"},
+        {4, "../res/cobble.png"},
+        {5, "../res/stone.png"},
+    });
+
+    */
+
+
+    //top is grass,  then 1 layer of dirt, then stone
+
+
+    if (pos.y == height) return 1;
+    if (pos.y == height - 1) return 3;
+    if (pos.y < height - 1) return 5;
+
+
+    return 0;
+}
 
 void Chunk::Generate() {
     auto start = NOW();
@@ -54,18 +77,28 @@ void Chunk::Generate() {
             float height = heightNoise->GetNoise(x + m_Position.x * CHUNK_SIZE, z + m_Position.z * CHUNK_SIZE);
             height = (height + 1.0f) / 2.0f;
             height *= CHUNK_HEIGHT / 2;
+            height = std::floor(height);
             for (int y = 0; y < CHUNK_HEIGHT; y++) {
-                if (y < height) {
-                    uint32_t blockID = (x + y + z) % 2 == 0 ? 1 : 2;
-                    SetBlock(x, y, z, blockID);
+                if (y <= height) {
+                    SetBlock(x, y, z, GetBlockID({x, y, z}, height));
                 }
             }
-
         }
     }
     auto end = NOW();
     printf("Generated chunk at position: %d, %d in %d ms\n", m_Position.x, m_Position.z, TIME(start, end));
 }
+
+
+enum FaceOrientation: uint32_t {
+    FRONT = 0,
+    BACK = 1,
+    LEFT = 2,
+    RIGHT = 3,
+    TOP = 4,
+    BOTTOM = 5,
+};
+
 
 void Chunk::BuildMesh() {
     m_Faces.clear();
@@ -87,48 +120,47 @@ void Chunk::BuildMesh() {
                 if (blockID == 0) continue;
 
 
+                auto GetTextureID = [&](uint32_t blockID, FaceOrientation face) -> uint32_t {
+
+                    switch (blockID) {
+                        case 1:
+                            if (face == TOP) return 1; //grass top
+                            if (face == BOTTOM) return 3; //dirt
+                            return 2;
+                        default:
+                            return blockID;
+                    }
+                };
+
+                auto AddFace = [&](glm::vec3 center, FaceOrientation orientation, uint32_t blockID) {
+
+
+
+                    m_Faces.push_back({
+                        .center = center,
+                        .orientation = orientation,
+                        .blockID = GetTextureID(blockID, orientation),
+                    });
+                };
+
 
                 if (GetBlock(x, y, z + 1) == 0) {
-                    m_Faces.push_back({
-                        .center = glm::vec3(x, y, z),
-                        .orientation = 0,
-                        .blockID = blockID
-                    });
+                    AddFace(glm::vec3(x, y, z), FRONT, blockID);
                 }
                 if (GetBlock(x, y, z - 1) == 0) {
-                    m_Faces.push_back({
-                        .center = glm::vec3(x, y, z),
-                        .orientation = 1,
-                        .blockID = blockID
-                    });
+                    AddFace(glm::vec3(x, y, z), BACK, blockID);
                 }
                 if (GetBlock(x + 1, y, z) == 0) {
-                    m_Faces.push_back({
-                        .center = glm::vec3(x, y, z),
-                        .orientation = 2,
-                        .blockID = blockID
-                    });
+                    AddFace(glm::vec3(x, y, z), LEFT, blockID);
                 }
                 if (GetBlock(x - 1, y, z) == 0) {
-                    m_Faces.push_back({
-                        .center = glm::vec3(x, y, z),
-                        .orientation = 3,
-                        .blockID = blockID
-                    });
+                    AddFace(glm::vec3(x, y, z), RIGHT, blockID);
                 }
                 if (GetBlock(x, y + 1, z) == 0) {
-                    m_Faces.push_back({
-                        .center = glm::vec3(x, y, z),
-                        .orientation = 4,
-                        .blockID = blockID
-                    });
+                    AddFace(glm::vec3(x, y, z), TOP, blockID);
                 }
                 if (GetBlock(x, y - 1, z) == 0) {
-                    m_Faces.push_back({
-                        .center = glm::vec3(x, y, z),
-                        .orientation = 5,
-                        .blockID = blockID
-                    });
+                    AddFace(glm::vec3(x, y, z), BOTTOM, blockID);
                 }
             }
         }
@@ -143,7 +175,7 @@ void Chunk::BuildMesh() {
                                                  wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst, &m_Uniforms,
                                                  sizeof(ChunkUniforms));
 
-    auto& worldRenderer = MiniCraft::Get()->m_WorldRenderer;
+    auto &worldRenderer = MiniCraft::Get()->m_WorldRenderer;
 
     wgpu::BindGroupDescriptor bindGroupDescriptor{};
     bindGroupDescriptor.layout = worldRenderer->m_Pipeline.GetBindGroupLayout(0);
@@ -159,7 +191,8 @@ void Chunk::BuildMesh() {
         {
             .binding = 2,
             .textureView = worldRenderer->m_Texture.CreateView()
-        }};
+        }
+    };
 
     bindGroupDescriptor.entryCount = bindGroupEntries.size();
     bindGroupDescriptor.entries = bindGroupEntries.data();
@@ -171,7 +204,8 @@ void Chunk::BuildMesh() {
 
 
     auto end = NOW();
-    printf("Built mesh for chunk at position: %d, %d (%d) in %d ms\n", m_Position.x, m_Position.z, m_VertexCount, TIME(start, end));
+    printf("Built mesh for chunk at position: %d, %d (%d) in %d ms\n", m_Position.x, m_Position.z, m_VertexCount,
+           TIME(start, end));
 
     m_IsReady = true;
 }

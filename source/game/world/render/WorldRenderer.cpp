@@ -37,6 +37,7 @@ unsigned char *LoadImage(const char *path) {
     return pixels;
 }
 
+#define TEXTURE_SIZE 16
 
 void WorldRenderer::LoadTextures(std::vector<TextureObject> textures) {
     auto &ctx = MiniCraft::Get()->m_RenderContext;
@@ -44,7 +45,7 @@ void WorldRenderer::LoadTextures(std::vector<TextureObject> textures) {
     wgpu::TextureDescriptor textureDescriptor{
         .usage = wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst |
                  wgpu::TextureUsage::RenderAttachment,
-        .size = {128, 128, num},
+        .size = {TEXTURE_SIZE, TEXTURE_SIZE, num},
         .format = wgpu::TextureFormat::RGBA8Unorm,
     };
 
@@ -59,12 +60,12 @@ void WorldRenderer::LoadTextures(std::vector<TextureObject> textures) {
 
         wgpu::TextureDataLayout source;
         source.offset = 0;
-        source.bytesPerRow = 128 * 4;
-        source.rowsPerImage = 128;
+        source.bytesPerRow = TEXTURE_SIZE * 4;
+        source.rowsPerImage = TEXTURE_SIZE;
 
-        wgpu::Extent3D copySize = {128, 128, 1};
+        wgpu::Extent3D copySize = {TEXTURE_SIZE, TEXTURE_SIZE, 1};
         unsigned char *pixels = LoadImage(texture.path.c_str());
-        ctx->m_Queue.WriteTexture(&destination, pixels, 4 * 128 * 128, &source, &copySize);
+        ctx->m_Queue.WriteTexture(&destination, pixels, 4 * TEXTURE_SIZE * TEXTURE_SIZE, &source, &copySize);
 
         delete[] pixels;
 
@@ -72,10 +73,13 @@ void WorldRenderer::LoadTextures(std::vector<TextureObject> textures) {
     }
 
     wgpu::SamplerDescriptor samplerDescriptor;
-    samplerDescriptor.minFilter = wgpu::FilterMode::Linear;
-    samplerDescriptor.magFilter = wgpu::FilterMode::Linear;
+    samplerDescriptor.minFilter = wgpu::FilterMode::Nearest;
+    samplerDescriptor.magFilter = wgpu::FilterMode::Nearest;
     m_Sampler = ctx->m_Device.CreateSampler(&samplerDescriptor);
 }
+
+
+
 
 void WorldRenderer::Init() {
     auto &ctx = MiniCraft::Get()->m_RenderContext;
@@ -90,8 +94,12 @@ void WorldRenderer::Init() {
 
 
     LoadTextures({
-        {1, "../res/one.png"},
-        {2, "../res/two.png"},
+        {1, "../res/grass_top.png"},
+        {2, "../res/grass_side.png"},
+        {3, "../res/dirt.png"},
+        {4, "../res/cobble.png"},
+        {5, "../res/stone.png"},
+        {6, "../res/missing.png"},
     });
 
     Core::RenderPipelineBuilder builder(ctx);

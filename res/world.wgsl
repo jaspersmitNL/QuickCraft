@@ -102,6 +102,8 @@ fn get_color_block(id: u32) -> vec3<f32> {
 }
 
 
+
+
 @vertex
 fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
     var out: VertexOutput;
