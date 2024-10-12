@@ -68,6 +68,14 @@ void Chunk::Generate() {
 }
 
 void Chunk::BuildMesh() {
+    m_Faces.clear();
+
+    if (m_InstanceBuffer) {
+        printf("Destroying existing buffer\n");
+        m_InstanceBuffer.Destroy();
+        m_UniformBuffer.Destroy();
+    }
+
     m_Faces.reserve(CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT * 6);
     auto start = NOW();
 
@@ -163,7 +171,7 @@ void Chunk::BuildMesh() {
 
 
     auto end = NOW();
-    printf("Built mesh for chunk at position: %d, %d in %d ms\n", m_Position.x, m_Position.z, TIME(start, end));
+    printf("Built mesh for chunk at position: %d, %d (%d) in %d ms\n", m_Position.x, m_Position.z, m_VertexCount, TIME(start, end));
 
     m_IsReady = true;
 }

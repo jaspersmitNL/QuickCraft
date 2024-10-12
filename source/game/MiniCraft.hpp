@@ -18,6 +18,8 @@ public:
 
     ~MiniCraft();
 
+    void Test();
+
 
     Ref<Core::Context> m_RenderContext;
     Ref<Camera> m_Camera;
