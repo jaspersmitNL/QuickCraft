@@ -6,6 +6,7 @@
 
 
 #define CHUNK_SIZE 64
+#define CHUNK_HEIGHT 80
 
 
 
@@ -14,7 +15,7 @@ public:
     glm::vec3 m_Position;
 
     Chunk(glm::vec3 pos): m_Position(pos) {
-        m_Blocks.resize(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
+        m_Blocks.resize(CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT);
     }
 
     uint32_t GetBlock(int x, int y, int z);
