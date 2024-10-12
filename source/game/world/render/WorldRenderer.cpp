@@ -99,7 +99,8 @@ void WorldRenderer::Init() {
         {3, "../res/dirt.png"},
         {4, "../res/cobble.png"},
         {5, "../res/stone.png"},
-        {6, "../res/missing.png"},
+        {6, "../res/bedrock.png"},
+        {7, "../res/missing.png"},
     });
 
     Core::RenderPipelineBuilder builder(ctx);

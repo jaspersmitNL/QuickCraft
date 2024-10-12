@@ -35,24 +35,13 @@ void Chunk::SetBlock(int x, int y, int z, uint32_t block) {
 
 
 uint32_t GetBlockID(glm::vec3 pos, float height) {
-    /*
-    LoadTextures({
-        {1, "../res/grass_top.png"},
-        {2, "../res/grass_side.png"},
-        {3, "../res/dirt.png"},
-        {4, "../res/cobble.png"},
-        {5, "../res/stone.png"},
-    });
-
-    */
 
 
-    //top is grass,  then 1 layer of dirt, then stone
 
-
-    if (pos.y == height) return 1;
-    if (pos.y == height - 1) return 3;
-    if (pos.y < height - 1) return 5;
+    if (pos.y == height) return 1; //grass
+    if (pos.y == height - 1) return 3; //dirt
+    if (pos.y < height - 1) return 5; //stone
+    if (pos.y == 0.0f) return 6; //bedrock
 
 
     return 0;
