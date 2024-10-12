@@ -33,6 +33,8 @@ void Chunk::SetBlock(int x, int y, int z, uint32_t block) {
     m_Blocks[idx] = block;
 }
 
+
+
 void Chunk::Generate() {
     auto start = NOW();
 
@@ -66,6 +68,7 @@ void Chunk::Generate() {
 }
 
 void Chunk::BuildMesh() {
+    m_Faces.reserve(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6);
     auto start = NOW();
 
 
@@ -74,6 +77,7 @@ void Chunk::BuildMesh() {
             for (int y = 0; y < CHUNK_SIZE; y++) {
                 uint32_t blockID = GetBlock(x, y, z);
                 if (blockID == 0) continue;
+
 
 
                 if (GetBlock(x, y, z + 1) == 0) {
@@ -131,16 +135,26 @@ void Chunk::BuildMesh() {
                                                  wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst, &m_Uniforms,
                                                  sizeof(ChunkUniforms));
 
+    auto& worldRenderer = MiniCraft::Get()->m_WorldRenderer;
+
     wgpu::BindGroupDescriptor bindGroupDescriptor{};
-    bindGroupDescriptor.layout = MiniCraft::Get()->m_WorldRenderer->m_Pipeline.GetBindGroupLayout(0);
-    bindGroupDescriptor.entryCount = 1;
-    wgpu::BindGroupEntry bindGroupEntries[1] = {
+    bindGroupDescriptor.layout = worldRenderer->m_Pipeline.GetBindGroupLayout(0);
+    std::vector<wgpu::BindGroupEntry> bindGroupEntries = {
         {
             .binding = 0,
             .buffer = m_UniformBuffer,
         },
-    };
-    bindGroupDescriptor.entries = bindGroupEntries;
+        {
+            .binding = 1,
+            .sampler = worldRenderer->m_Sampler,
+        },
+        {
+            .binding = 2,
+            .textureView = worldRenderer->m_Texture.CreateView()
+        }};
+
+    bindGroupDescriptor.entryCount = bindGroupEntries.size();
+    bindGroupDescriptor.entries = bindGroupEntries.data();
 
     m_BindGroup = MiniCraft::Get()->m_RenderContext->m_Device.CreateBindGroup(&bindGroupDescriptor);
 

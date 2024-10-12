@@ -4,6 +4,7 @@
 
 struct BlockVertex {
     glm::vec3 position;
+    glm::vec2 uv;
 };
 
 struct BlockFace {

@@ -11,9 +11,9 @@
 
 class Chunk {
 public:
-    glm::ivec3 m_Position;
+    glm::vec3 m_Position;
 
-    Chunk(glm::ivec3 pos): m_Position(pos) {
+    Chunk(glm::vec3 pos): m_Position(pos) {
         m_Blocks.resize(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
     }
 
@@ -27,12 +27,12 @@ public:
 
 
     inline static std::vector<BlockVertex> blockVertices = {
-        {glm::vec3(-0.5f, -0.5f, 0.5f)}, // bottom left
-        {glm::vec3(0.5f, -0.5f, 0.5f)}, // bottom right
-        {glm::vec3(0.5f, 0.5f, 0.5f)}, // top right
-        {glm::vec3(0.5f, 0.5f, 0.5f)}, // top right
-        {glm::vec3(-0.5f, 0.5f, 0.5f)}, // top left
-        {glm::vec3(-0.5f, -0.5f, 0.5f)}, // bottom left
+        {glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec2(0.0f, 1.0f)}, // bottom left
+        {glm::vec3(0.5f, -0.5f, 0.5f), glm::vec2(1.0f, 1.0f)}, // bottom right
+        {glm::vec3(0.5f, 0.5f, 0.5f), glm::vec2(1.0f, 0.0f)}, // top right
+        {glm::vec3(0.5f, 0.5f, 0.5f), glm::vec2(1.0f, 0.0f)}, // top right
+        {glm::vec3(-0.5f, 0.5f, 0.5f), glm::vec2(0.0f, 0.0f)}, // top left
+        {glm::vec3(-0.5f, -0.5f, 0.5f), glm::vec2(0.0f, 1.0f)}, // bottom left
     };
 
     inline static std::vector<BlockFace> blockFaces = {
