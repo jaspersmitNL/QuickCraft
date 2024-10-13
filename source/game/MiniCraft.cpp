@@ -47,7 +47,7 @@ void MiniCraft::OnRender() {
         .view = surfaceTexture.texture.CreateView(),
         .loadOp = wgpu::LoadOp::Clear,
         .storeOp = wgpu::StoreOp::Store,
-        .clearValue = wgpu::Color{0.0f, 0.0f, 0.0f, 1.0f},
+        .clearValue = {0.5f, 0.7f, 1.0f, 1.0f}
     };
 
     wgpu::RenderPassDepthStencilAttachment clearDepthAttachment{

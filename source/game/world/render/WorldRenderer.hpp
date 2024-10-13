@@ -22,10 +22,13 @@ public:
     wgpu::RenderPipeline m_Pipeline;
     wgpu::Texture m_Texture;
     wgpu::Sampler m_Sampler;
+    Uniforms m_Uniforms{};
 private:
     Ref<World> m_World;
     wgpu::Buffer m_VertexBuffer;
+    wgpu::Buffer m_UniformBuffer;
     wgpu::ShaderModule m_Shader;
+    wgpu::BindGroup m_BindGroup;
 
 
 

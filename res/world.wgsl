@@ -10,26 +10,26 @@ struct VertexOutput {
     @builtin(position) pos: vec4<f32>,
     @location(0) uv: vec2<f32>,
     @location(1) normal: vec3<f32>,
-    @location(2) @interpolate(flat) blockID: u32,
+    @location(2) distanceToCamera: f32,
+    @location(3) @interpolate(flat) blockID: u32,
 }
 
 
-struct ChunkUniforms {
+struct Uniforms {
     uProj: mat4x4<f32>,
     uView: mat4x4<f32>,
-    uModel: mat4x4<f32>
+    uInvProj: mat4x4<f32>,
+    uInvView: mat4x4<f32>,
+    uCameraPos: vec4<f32>,
+    uFogNear: f32,
+    uFogFar: f32,
 }
 
-struct WorldRendererUniforms {
-    fogNear: f32,
-    fogFar: f32,
-    fogColor: vec3<f32>
-};
 
-@group(0) @binding(0) var<uniform> chunkUniforms: ChunkUniforms;
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(0) @binding(1) var uSampler: sampler;
 @group(0) @binding(2) var uTexture: texture_2d_array<f32>;
-//@group(1) @binding(0) var<uniform> globalUniforms: WorldRendererUniforms;
+
 
 
 
@@ -113,9 +113,13 @@ fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
     var rotated_pos = rot_mat * in.pos;
     var translated_pos = rotated_pos + in.center;
 
+
     out.normal = rot_mat * vec3<f32>(0.0, 0.0, 1.0);
 
-    out.pos = chunkUniforms.uProj * chunkUniforms.uView * chunkUniforms.uModel * vec4<f32>(translated_pos, 1.0);
+    out.distanceToCamera = length(uniforms.uCameraPos.xyz - translated_pos);
+
+
+    out.pos = uniforms.uProj * uniforms.uView * vec4<f32>(translated_pos, 1.0);
 
     return out;
 }
@@ -127,6 +131,15 @@ fn vs_main(in: VertexAndInstanceInput) -> VertexOutput {
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var color = textureSample(uTexture, uSampler, in.uv, in.blockID);
+
+    var fogColor = vec4<f32>(0.5f, 0.7f, 1.0f, 1.0f);
+
+    //how farther a object is away how more white it becomes
+
+    var fogAmount = (in.distanceToCamera - uniforms.uFogNear) / (uniforms.uFogFar - uniforms.uFogNear);
+    fogAmount = clamp(fogAmount, 0.0, 1.0);
+    color = mix(color, fogColor, fogAmount);
+
 
     return color;
 }

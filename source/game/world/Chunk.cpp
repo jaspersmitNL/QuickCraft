@@ -116,7 +116,6 @@ void Chunk::BuildMesh() {
     if (m_InstanceBuffer) {
         printf("Destroying existing buffer\n");
         m_InstanceBuffer.Destroy();
-        m_UniformBuffer.Destroy();
     }
 
     m_Faces.reserve(CHUNK_SIZE * CHUNK_SIZE * CHUNK_HEIGHT * 6);
@@ -144,10 +143,18 @@ void Chunk::BuildMesh() {
 
                 auto AddFace = [&](glm::vec3 center, FaceOrientation orientation, uint32_t blockID) {
 
+                    // chunk->m_Position.x * CHUNK_SIZE,
+                    //                           chunk->m_Position.y * CHUNK_SIZE,
+                    //                           chunk->m_Position.z * CHUNK_SIZE
+
+
+                    glm::vec3 offset = {m_Position.x * CHUNK_SIZE, m_Position.y * CHUNK_HEIGHT, m_Position.z * CHUNK_SIZE};
+
+
 
 
                     m_Faces.push_back({
-                        .center = center,
+                        .center = center + offset,
                         .orientation = orientation,
                         .blockID = GetTextureID(blockID, orientation),
                     });
@@ -181,33 +188,6 @@ void Chunk::BuildMesh() {
                                                   wgpu::BufferUsage::Vertex, m_Faces.data(),
                                                   sizeof(BlockFace) * m_Faces.size());
 
-    m_UniformBuffer = Core::CreateBufferFromData(MiniCraft::Get()->m_RenderContext->m_Device,
-                                                 wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst, &m_Uniforms,
-                                                 sizeof(ChunkUniforms));
-
-    auto &worldRenderer = MiniCraft::Get()->m_WorldRenderer;
-
-    wgpu::BindGroupDescriptor bindGroupDescriptor{};
-    bindGroupDescriptor.layout = worldRenderer->m_Pipeline.GetBindGroupLayout(0);
-    std::vector<wgpu::BindGroupEntry> bindGroupEntries = {
-        {
-            .binding = 0,
-            .buffer = m_UniformBuffer,
-        },
-        {
-            .binding = 1,
-            .sampler = worldRenderer->m_Sampler,
-        },
-        {
-            .binding = 2,
-            .textureView = worldRenderer->m_Texture.CreateView()
-        }
-    };
-
-    bindGroupDescriptor.entryCount = bindGroupEntries.size();
-    bindGroupDescriptor.entries = bindGroupEntries.data();
-
-    m_BindGroup = MiniCraft::Get()->m_RenderContext->m_Device.CreateBindGroup(&bindGroupDescriptor);
 
 
     m_VertexCount = m_Faces.size();

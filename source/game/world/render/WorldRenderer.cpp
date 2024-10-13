@@ -1,16 +1,17 @@
-//
-// Created by jasper on 8-10-2024.
-//
-
 #include "WorldRenderer.hpp"
 #include "core/Utils.hpp"
 #include "core/builder/RenderPipelineBuilder.hpp"
 #include "game/MiniCraft.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "imgui.h"
 #include "stb_image.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+#include <GLFW/glfw3.h>
+
+
+#define TEXTURE_SIZE 16
+#define RENDER_SIZE 8
+
 
 
 unsigned char *LoadImage(const char *path) {
@@ -38,7 +39,6 @@ unsigned char *LoadImage(const char *path) {
     return pixels;
 }
 
-#define TEXTURE_SIZE 16
 
 void WorldRenderer::LoadTextures(std::vector<TextureObject> textures) {
     auto &ctx = MiniCraft::Get()->m_RenderContext;
@@ -80,8 +80,6 @@ void WorldRenderer::LoadTextures(std::vector<TextureObject> textures) {
 }
 
 
-
-
 void WorldRenderer::Init() {
     auto &ctx = MiniCraft::Get()->m_RenderContext;
 
@@ -90,6 +88,9 @@ void WorldRenderer::Init() {
     m_VertexBuffer = Core::CreateBufferFromData(ctx->m_Device, wgpu::BufferUsage::Vertex, Chunk::blockVertices.data(),
                                                 sizeof(BlockVertex) * Chunk::blockVertices.size());
 
+
+    m_UniformBuffer = Core::CreateBufferFromData(ctx->m_Device, wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst,
+                                                 &m_Uniforms, sizeof(Uniforms));
 
     m_Shader = Core::LoadShaderFromFile(ctx->m_Device, "../res/world.wgsl", "World Shader");
 
@@ -143,6 +144,30 @@ void WorldRenderer::Init() {
         .Build();
     // @formatter:on
 
+
+    wgpu::BindGroupDescriptor bindGroupDescriptor{};
+    bindGroupDescriptor.layout = m_Pipeline.GetBindGroupLayout(0);
+    std::vector<wgpu::BindGroupEntry> bindGroupEntries = {
+        {
+            .binding = 0,
+            .buffer = m_UniformBuffer,
+        },
+        {
+            .binding = 1,
+            .sampler = m_Sampler,
+        },
+        {
+            .binding = 2,
+            .textureView = m_Texture.CreateView()
+        }
+    };
+
+    bindGroupDescriptor.entryCount = bindGroupEntries.size();
+    bindGroupDescriptor.entries = bindGroupEntries.data();
+
+    m_BindGroup = MiniCraft::Get()->m_RenderContext->m_Device.CreateBindGroup(&bindGroupDescriptor);
+
+
     printf("WorldRenderer initialized\n");
 }
 
@@ -154,15 +179,19 @@ void WorldRenderer::Render(wgpu::CommandEncoder &commandEncoder, wgpu::SurfaceTe
     ImGui::Begin("WorldRenderer");
     ImGuiIO &io = ImGui::GetIO();
     ImGui::Text("FPS: %.2f", io.Framerate);
-    ImGui::Text("Camera Position: %.2f %.2f %.2f", camera->GetPosition().x, camera->GetPosition().y, camera->GetPosition().z);
+    ImGui::Text("Camera Position: %.2f %.2f %.2f", camera->GetPosition().x, camera->GetPosition().y,
+                camera->GetPosition().z);
+    ImGui::InputFloat("Fog Near", &m_Uniforms.fogNear, 0.1f, 1.0f);
+    ImGui::InputFloat("Fog Far", &m_Uniforms.fogFar, 0.1f, 1.0f);
     ImGui::End();
 
+
+    //nice sky like blue
 
     wgpu::RenderPassColorAttachment colorAttachment{
         .view = surfaceTexture.texture.CreateView(),
         .loadOp = wgpu::LoadOp::Load,
         .storeOp = wgpu::StoreOp::Store,
-        .clearValue = {0.0f, 0.0f, 0.0f, 1.0f},
     };
 
     wgpu::RenderPassDepthStencilAttachment renderPassDepthStencilAttachment{
@@ -179,13 +208,24 @@ void WorldRenderer::Render(wgpu::CommandEncoder &commandEncoder, wgpu::SurfaceTe
     };
 
     wgpu::RenderPassEncoder pass = commandEncoder.BeginRenderPass(&renderPassDescriptor);
+    auto camPos = camera->GetPosition();
 
     pass.SetPipeline(m_Pipeline);
     pass.SetVertexBuffer(0, m_VertexBuffer);
+    pass.SetBindGroup(0, m_BindGroup);
 
-    auto camPos = camera->GetPosition();
 
-#define RENDER_SIZE 8
+    m_Uniforms.projection = camera->GetProjection();
+    m_Uniforms.view = camera->GetView();
+    m_Uniforms.cameraPosition = {camPos.x, camPos.y, camPos.z, 1.0f};
+    m_Uniforms.inverseProjection =camera->GetInverseProjection();
+    m_Uniforms.inverseView = camera->GetInverseView();
+
+
+
+    ctx->m_Device.GetQueue().WriteBuffer(m_UniformBuffer, 0, &m_Uniforms, sizeof(Uniforms));
+
+
 
     //render a 4x4 chunks around the camera
     glm::ivec3 start = {
@@ -196,33 +236,21 @@ void WorldRenderer::Render(wgpu::CommandEncoder &commandEncoder, wgpu::SurfaceTe
 
     for (int x = start.x; x < start.x + RENDER_SIZE; x++) {
         for (int z = start.z; z < start.z + RENDER_SIZE; z++) {
-                int y = 0;
-                //world m_Chunks is a map of chunks, so we can just get the chunk at the position
-                auto chunk = m_World->m_Chunks[{x, y, z}];
-                if (!chunk) {
-                    chunk = CreateRef<Chunk>(glm::vec3(x, y, z));
-                    m_World->m_Chunks[{x, y, z}] = chunk;
-                    chunk->Generate();
-                    chunk->BuildMesh();
-                }
-                if (!chunk->m_IsReady) continue;
-
-                chunk->m_Uniforms.projection = camera->GetProjection();
-                chunk->m_Uniforms.view = camera->GetView();
-                chunk->m_Uniforms.model = glm::translate(glm::mat4(1.0f), glm::vec3(
-                                                             chunk->m_Position.x * CHUNK_SIZE,
-                                                             chunk->m_Position.y * CHUNK_SIZE,
-                                                             chunk->m_Position.z * CHUNK_SIZE
-                                                         ));
-
-
-                pass.SetBindGroup(0, chunk->m_BindGroup);
-                ctx->m_Device.GetQueue().WriteBuffer(chunk->m_UniformBuffer, 0, &chunk->m_Uniforms, sizeof(ChunkUniforms));
-                pass.SetVertexBuffer(1, chunk->m_InstanceBuffer);
-                pass.Draw(6, chunk->m_VertexCount, 0, 0);
-
-
+            int y = 0;
+            //world m_Chunks is a map of chunks, so we can just get the chunk at the position
+            auto chunk = m_World->m_Chunks[{x, y, z}];
+            if (!chunk) {
+                chunk = CreateRef<Chunk>(glm::vec3(x, y, z));
+                m_World->m_Chunks[{x, y, z}] = chunk;
+                chunk->Generate();
+                chunk->BuildMesh();
             }
+            if (!chunk->m_IsReady) continue;
+
+
+            pass.SetVertexBuffer(1, chunk->m_InstanceBuffer);
+            pass.Draw(6, chunk->m_VertexCount, 0, 0);
+        }
     }
 
 

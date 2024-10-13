@@ -47,11 +47,6 @@ public:
 
 
     wgpu::Buffer m_InstanceBuffer = nullptr;
-    wgpu::Buffer m_UniformBuffer = nullptr;
-    wgpu::BindGroup m_BindGroup = nullptr;
-
-    ChunkUniforms m_Uniforms{};
-
     uint32_t m_VertexCount = 0;
 
     bool m_IsReady = false;
