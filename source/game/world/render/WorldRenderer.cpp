@@ -152,6 +152,8 @@ void WorldRenderer::Render(wgpu::CommandEncoder &commandEncoder, wgpu::SurfaceTe
 
 
     ImGui::Begin("WorldRenderer");
+    ImGuiIO &io = ImGui::GetIO();
+    ImGui::Text("FPS: %.2f", io.Framerate);
     ImGui::Text("Camera Position: %.2f %.2f %.2f", camera->GetPosition().x, camera->GetPosition().y, camera->GetPosition().z);
     ImGui::End();
 
