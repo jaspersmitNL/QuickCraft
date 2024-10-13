@@ -3,6 +3,9 @@
 #include "world/World.hpp"
 #include "world/render/WorldRenderer.hpp"
 #include "utils/Raycast.hpp"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_wgpu.h>
 
 #include <stdio.h>
 #include <webgpu/webgpu_cpp.h>
@@ -33,9 +36,10 @@ void MiniCraft::OnRender() {
     m_Camera->OnUpdate(1.0f / 120.0f);
 
 
-
     wgpu::SurfaceTexture surfaceTexture;
     ctx->m_Surface.GetCurrentTexture(&surfaceTexture);
+
+
 
     wgpu::CommandEncoder encoder = ctx->m_Device.CreateCommandEncoder();
 
@@ -63,12 +67,37 @@ void MiniCraft::OnRender() {
     wgpu::RenderPassEncoder clearPass = encoder.BeginRenderPass(&clearPassDescriptor);
     clearPass.End();
 
+
+    ImGui_ImplWGPU_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+
     m_WorldRenderer->Render(encoder, surfaceTexture);
+
+
+    ImGui::Render();
+    wgpu::RenderPassColorAttachment imGuiColorAttachment{
+        .view = surfaceTexture.texture.CreateView(),
+        .loadOp = wgpu::LoadOp::Load,
+        .storeOp = wgpu::StoreOp::Store,
+    };
+    wgpu::RenderPassDescriptor imGuiRenderPassDescriptor{
+        .label = "ImGui Render Pass",
+        .colorAttachmentCount = 1,
+        .colorAttachments = &imGuiColorAttachment,
+    };
+
+    wgpu::RenderPassEncoder imGuiPass = encoder.BeginRenderPass(&imGuiRenderPassDescriptor);
+    ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), imGuiPass.Get());
+    imGuiPass.End();
 
 
     wgpu::CommandBuffer commands = encoder.Finish();
     ctx->m_Queue.Submit(1, &commands);
 }
+
+
 
 void MiniCraft::Init() {
     m_Camera->OnResize(m_RenderContext->m_Width, m_RenderContext->m_Height);
@@ -99,6 +128,7 @@ void MiniCraft::Run() {
     printf("Running MiniCraft\n");
 
     Init();
+    InitImGui();
 
     while (!glfwWindowShouldClose(m_RenderContext->m_Window)) {
         glfwPollEvents();
@@ -113,7 +143,6 @@ void MiniCraft::Run() {
             m_RenderContext->OnResize(width, height);
         }
 
-
         OnRender();
 
 
@@ -124,8 +153,23 @@ void MiniCraft::Run() {
 
 
 
-MiniCraft::~MiniCraft() {
-    printf("Destroying MiniCraft\n");
+
+void MiniCraft::InitImGui() {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    ImGui_ImplGlfw_InitForOther(m_RenderContext->m_Window, true);
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplWGPU_InitInfo init_info;
+    init_info.Device = m_RenderContext->m_Device.Get();
+    init_info.NumFramesInFlight = 3;
+    init_info.RenderTargetFormat = (WGPUTextureFormat) m_RenderContext->m_SurfaceTextureFormat;
+    init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
+    ImGui_ImplWGPU_Init(&init_info);
 }
 
 void MiniCraft::Test(bool place) {

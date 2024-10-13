@@ -16,7 +16,8 @@ public:
 
     void Run();
 
-    ~MiniCraft();
+
+    void InitImGui();
 
     void Test(bool place);
 

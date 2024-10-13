@@ -9,6 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
+#include "imgui.h"
 #include "stb_image.hpp"
 
 
@@ -148,6 +149,12 @@ void WorldRenderer::Init() {
 void WorldRenderer::Render(wgpu::CommandEncoder &commandEncoder, wgpu::SurfaceTexture &surfaceTexture) {
     auto &ctx = MiniCraft::Get()->m_RenderContext;
     auto &camera = MiniCraft::Get()->m_Camera;
+
+
+    ImGui::Begin("WorldRenderer");
+    ImGui::Text("Camera Position: %.2f %.2f %.2f", camera->GetPosition().x, camera->GetPosition().y, camera->GetPosition().z);
+    ImGui::End();
+
 
     wgpu::RenderPassColorAttachment colorAttachment{
         .view = surfaceTexture.texture.CreateView(),
