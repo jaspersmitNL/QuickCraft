@@ -18,7 +18,7 @@ public:
 
     ~MiniCraft();
 
-    void Test();
+    void Test(bool place);
 
 
     Ref<Core::Context> m_RenderContext;

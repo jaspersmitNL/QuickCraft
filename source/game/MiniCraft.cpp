@@ -1,12 +1,12 @@
 #include "MiniCraft.hpp"
 #include "core/builder/RenderPipelineBuilder.hpp"
+#include "world/World.hpp"
+#include "world/render/WorldRenderer.hpp"
+#include "utils/Raycast.hpp"
 
 #include <stdio.h>
 #include <webgpu/webgpu_cpp.h>
 #include <GLFW/glfw3.h>
-
-#include "world/World.hpp"
-#include "world/render/WorldRenderer.hpp"
 
 
 wgpu::ShaderModule shader;
@@ -86,10 +86,12 @@ void MiniCraft::Init() {
         if (action != GLFW_PRESS)
             return;
 
-        printf("KeyPress: %d\n", key);
         if (key == GLFW_KEY_F1) {
-            Get()->Test();
+            Get()->Test(true);
         }
+        if (key == GLFW_KEY_F2) {
+         Get()->Test(false);
+     }
     });
 }
 
@@ -126,30 +128,14 @@ MiniCraft::~MiniCraft() {
     printf("Destroying MiniCraft\n");
 }
 
-void MiniCraft::Test() {
-    auto camPos = m_Camera->GetPosition();
+void MiniCraft::Test(bool place) {
+    auto hit = Raycast::Cast(m_Camera->GetPosition(), m_Camera->GetDirection(), 5);
 
-
-    glm::vec3 chunkPos = glm::vec3{std::floor(camPos.x / CHUNK_SIZE), 0, std::floor(camPos.z / CHUNK_SIZE)};
-    auto chunk = m_World->m_Chunks[chunkPos];
-    if (!chunk) {
-        printf("Failed to find chunk at position: %f, %f\n", chunkPos.x, chunkPos.z);
-        return;
+    if (hit.chunk) {
+        printf("We hit a block at position: %f, %f, %f\n", hit.blockPos.x, hit.blockPos.y, hit.blockPos.z);
+        hit.chunk->SetBlock(hit.blockPos.x, hit.blockPos.y, hit.blockPos.z, place ? 7 : 0);
+        hit.chunk->BuildMesh();
     }
 
-    glm::vec3 blockPos = glm::vec3{camPos.x - chunkPos.x * CHUNK_SIZE, camPos.y, camPos.z - chunkPos.z * CHUNK_SIZE};
-
-    printf("Found chunk at position: %f, %f\n", chunkPos.x, chunkPos.z);
-
-    chunk->SetBlock(blockPos.x, blockPos.y, blockPos.z, 1); // Grass
-    // int size = 4;
-    // for (int x = -size; x <= size; x++) {
-    //     for (int z = -size; z <= size; z++) {
-    //         for (int y = -size; y <= size; y++) {
-    //             chunk->SetBlock(blockPos.x + x, blockPos.y + y, blockPos.z + z,  (rand() % 3));
-    //         }
-    //     }
-    // }
-    chunk->BuildMesh();
 
 }

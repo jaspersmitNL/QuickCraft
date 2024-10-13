@@ -63,6 +63,7 @@ namespace Core {
         descriptor.label = label.c_str();
         descriptor.vertex = vertexState;
         descriptor.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
+        descriptor.primitive.cullMode = wgpu::CullMode::Back;
 
         descriptor.layout = nullptr;
 

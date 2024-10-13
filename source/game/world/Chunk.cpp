@@ -38,13 +38,34 @@ uint32_t GetBlockID(glm::vec3 pos, float height) {
 
 
 
+    // if (pos.y == height) return 1; //grass
+    // if (pos.y == height - 1) return 3; //dirt
+    // if (pos.y < height - 1) return 5; //stone
+    // if (pos.y == 0.0f) return 6; //bedrock
+
+
+    /*
+    *    LoadTextures({
+    {1, "../res/grass_top.png"},
+    {2, "../res/grass_side.png"},
+    {3, "../res/dirt.png"},
+    {4, "../res/cobble.png"},
+    {5, "../res/stone.png"},
+    {6, "../res/bedrock.png"},
+    {7, "../res/missing.png"},
+    });
+    */
     if (pos.y == height) return 1; //grass
     if (pos.y == height - 1) return 3; //dirt
-    if (pos.y < height - 1) return 5; //stone
-    if (pos.y == 0.0f) return 6; //bedrock
+    if (pos.y >= 1 && pos.y < height - 1) return 5; //stone
+
+    if (pos.y == 0.0f) {
+        return 6;
+    }
 
 
-    return 0;
+
+    return 2;
 }
 
 void Chunk::Generate() {
@@ -75,7 +96,7 @@ void Chunk::Generate() {
         }
     }
     auto end = NOW();
-    printf("Generated chunk at position: %d, %d in %d ms\n", m_Position.x, m_Position.z, TIME(start, end));
+    // printf("Generated chunk at position: %f, %f in %lld ms\n", m_Position.x, m_Position.z, TIME(start, end));
 }
 
 
@@ -193,8 +214,8 @@ void Chunk::BuildMesh() {
 
 
     auto end = NOW();
-    printf("Built mesh for chunk at position: %d, %d (%d) in %d ms\n", m_Position.x, m_Position.z, m_VertexCount,
-           TIME(start, end));
+    // printf("Built mesh for chunk at position: %f, %f (%d) in %lld ms\n", m_Position.x, m_Position.z, m_VertexCount,
+    //        TIME(start, end));
 
     m_IsReady = true;
 }
